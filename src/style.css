@@ -375,7 +375,7 @@ input[type="range"] { width: 100%; cursor: pointer; }
 
 /* --- SEO Section --- */
 .info-section { margin-top: 3rem; }
-.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; }
 .info-card {
     background: rgba(255, 255, 255, 0.6); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.5);
 }

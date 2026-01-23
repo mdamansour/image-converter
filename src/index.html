@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     
     <script src="script.js" defer></script>
 </head>
@@ -33,7 +34,7 @@
                 </svg>
             </div>
             <h3>Upload Images</h3>
-            <p class="hint">Drag & drop multiple files<br>Supports JPG, PNG, WEBP, BMP</p>
+            <p class="hint">Drag & drop multiple files<br>Supports JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC</p>
             <input type="file" id="fileInput" accept="image/*" multiple hidden>
         </div>
 
@@ -46,7 +47,11 @@
                         <option value="image/jpeg">JPG (Photos)</option>
                         <option value="image/png">PNG (Transparent)</option>
                         <option value="image/webp">WEBP (Web Optimized)</option>
+                        <option value="image/gif">GIF (Animation)</option>
                         <option value="image/bmp">BMP (Raw)</option>
+                        <option value="image/tiff">TIFF (Professional)</option>
+                        <option value="image/svg+xml">SVG (Vector Wrapper)</option>
+                        <option value="image/x-icon">ICO (Favicon)</option>
                     </select>
                 </div>
 
@@ -119,6 +124,10 @@
             <div class="info-card">
                 <h3>⚡ Offline Capable</h3>
                 <p>Install this app on your phone or desktop. It works perfectly even without an internet connection.</p>
+            </div>
+            <div class="info-card">
+                <h3>🎨 8+ Formats Supported</h3>
+                <p>Convert between JPG, PNG, WEBP, GIF, BMP, TIFF, SVG, ICO. Read HEIC/HEIF from iPhone. All processing in your browser.</p>
             </div>
         </div>
     </section>

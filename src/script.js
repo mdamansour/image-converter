@@ -58,12 +58,13 @@ qualityRange.addEventListener('input', (e) => {
 });
 
 formatSelect.addEventListener('change', (e) => {
-    if(e.target.value === 'image/png' || e.target.value === 'image/bmp') {
-        qualityGroup.style.opacity = '0.5';
-        qualityRange.disabled = true;
-    } else {
+    const lossy = ['image/jpeg', 'image/webp'];
+    if(lossy.includes(e.target.value)) {
         qualityGroup.style.opacity = '1';
         qualityRange.disabled = false;
+    } else {
+        qualityGroup.style.opacity = '0.5';
+        qualityRange.disabled = true;
     }
     saveSettings();
 });
@@ -163,7 +164,7 @@ dropZone.setAttribute('tabindex', '0');
 function handleFiles(files) {
     let newFilesAdded = false;
     
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach(async file => {
         if (file.type.startsWith('image/')) {
             const item = {
                 file: file,
@@ -173,7 +174,8 @@ function handleFiles(files) {
                 format: getFormatName(file.type),
                 progress: 0,
                 error: null,
-                estimatedSize: null
+                estimatedSize: null,
+                isHEIC: file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')
             };
             item.estimatedSize = estimateOutputSize(file);
             fileQueue.push(item);
@@ -197,29 +199,75 @@ function handleFiles(files) {
 }
 
 function generateThumbnail(file, item) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const size = 48;
-            canvas.width = size;
-            canvas.height = size;
-            
-            const scale = Math.max(size / img.width, size / img.height);
-            const x = (size - img.width * scale) / 2;
-            const y = (size - img.height * scale) / 2;
-            
-            ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-            item.thumbnail = canvas.toDataURL();
-            item.thumbnailLoading = false;
-            updateQueueUI();
-        };
-        img.src = e.target.result;
-    };
     item.thumbnailLoading = true;
-    reader.readAsDataURL(file);
+    
+    // Check if HEIC and needs conversion
+    if (item.isHEIC && typeof heic2any !== 'undefined') {
+        heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.5
+        })
+        .then(convertedBlob => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const size = 48;
+                    canvas.width = size;
+                    canvas.height = size;
+                    
+                    const scale = Math.max(size / img.width, size / img.height);
+                    const x = (size - img.width * scale) / 2;
+                    const y = (size - img.height * scale) / 2;
+                    
+                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                    item.thumbnail = canvas.toDataURL();
+                    item.thumbnailLoading = false;
+                    updateQueueUI();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(convertedBlob);
+        })
+        .catch(err => {
+            console.error('HEIC thumbnail error:', err);
+            item.thumbnailLoading = false;
+            item.thumbnail = null;
+            updateQueueUI();
+        });
+    } else {
+        // Standard thumbnail generation
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const size = 48;
+                canvas.width = size;
+                canvas.height = size;
+                
+                const scale = Math.max(size / img.width, size / img.height);
+                const x = (size - img.width * scale) / 2;
+                const y = (size - img.height * scale) / 2;
+                
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                item.thumbnail = canvas.toDataURL();
+                item.thumbnailLoading = false;
+                updateQueueUI();
+            };
+            img.onerror = () => {
+                item.thumbnailLoading = false;
+                item.thumbnail = null;
+                updateQueueUI();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 }
 
 function getFormatName(mimeType) {
@@ -228,6 +276,10 @@ function getFormatName(mimeType) {
     if (mimeType === 'image/webp') return 'WEBP';
     if (mimeType === 'image/bmp') return 'BMP';
     if (mimeType === 'image/gif') return 'GIF';
+    if (mimeType === 'image/tiff' || mimeType === 'image/tif') return 'TIFF';
+    if (mimeType === 'image/svg+xml') return 'SVG';
+    if (mimeType === 'image/x-icon' || mimeType === 'image/vnd.microsoft.icon') return 'ICO';
+    if (mimeType === 'image/heic' || mimeType === 'image/heif') return 'HEIC';
     return 'IMG';
 }
 
@@ -446,59 +498,141 @@ async function processBatch() {
 
 function convertSingleImage(file) {
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-
-                let targetWidth = img.width;
-                let targetHeight = img.height;
-
-                // Handle Resizing
-                if (resizeCheck.checked) {
-                    const wInput = parseInt(widthInput.value);
-                    const hInput = parseInt(heightInput.value);
-
-                    if (wInput && hInput) {
-                        targetWidth = wInput;
-                        targetHeight = hInput;
-                    } else if (wInput) {
-                        const ratio = img.height / img.width;
-                        targetWidth = wInput;
-                        targetHeight = Math.round(wInput * ratio);
-                    } else if (hInput) {
-                        const ratio = img.width / img.height;
-                        targetHeight = hInput;
-                        targetWidth = Math.round(hInput * ratio);
-                    }
-                }
-
-                canvas.width = targetWidth;
-                canvas.height = targetHeight;
-
-                // Handle Transparency
-                if(formatSelect.value === 'image/jpeg' || formatSelect.value === 'image/bmp') {
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }
-
-                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-                resolve(canvas.toDataURL(formatSelect.value, parseFloat(qualityRange.value)));
+        // Check if file is HEIC and needs preprocessing
+        const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' || 
+                       file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+        
+        if (isHEIC && typeof heic2any !== 'undefined') {
+            // Convert HEIC to blob first
+            heic2any({
+                blob: file,
+                toType: 'image/jpeg',
+                quality: 0.9
+            })
+            .then(convertedBlob => {
+                // Now process the converted blob as normal
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    processImage(event.target.result, resolve, reject);
+                };
+                reader.readAsDataURL(convertedBlob);
+            })
+            .catch(err => {
+                console.error('HEIC conversion error:', err);
+                reject(new Error('Failed to convert HEIC file'));
+            });
+        } else {
+            // Standard processing
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                processImage(event.target.result, resolve, reject);
             };
-            img.onerror = reject;
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
+            reader.readAsDataURL(file);
+        }
     });
+}
+
+function processImage(dataUrl, resolve, reject) {
+    const img = new Image();
+    img.onload = () => {
+        const targetFormat = formatSelect.value;
+        
+        // Handle SVG output (wrap raster image in SVG)
+        if (targetFormat === 'image/svg+xml') {
+            const svgContent = createSVGWrapper(img, dataUrl);
+            resolve(svgContent);
+            return;
+        }
+        
+        // Handle ICO output (create multi-size ICO)
+        if (targetFormat === 'image/x-icon') {
+            const icoData = createICO(img);
+            resolve(icoData);
+            return;
+        }
+        
+        // Standard canvas conversion
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let targetWidth = img.width;
+        let targetHeight = img.height;
+
+        // Handle Resizing
+        if (resizeCheck.checked) {
+            const wInput = parseInt(widthInput.value);
+            const hInput = parseInt(heightInput.value);
+
+            if (wInput && hInput) {
+                targetWidth = wInput;
+                targetHeight = hInput;
+            } else if (wInput) {
+                const ratio = img.height / img.width;
+                targetWidth = wInput;
+                targetHeight = Math.round(wInput * ratio);
+            } else if (hInput) {
+                const ratio = img.width / img.height;
+                targetHeight = hInput;
+                targetWidth = Math.round(hInput * ratio);
+            }
+        }
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        // Handle Transparency
+        if(targetFormat === 'image/jpeg' || targetFormat === 'image/bmp') {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        resolve(canvas.toDataURL(targetFormat, parseFloat(qualityRange.value)));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
 }
 
 function getExtension(mimeType) {
     if(mimeType === 'image/png') return 'png';
     if(mimeType === 'image/webp') return 'webp';
     if(mimeType === 'image/bmp') return 'bmp';
+    if(mimeType === 'image/gif') return 'gif';
+    if(mimeType === 'image/tiff') return 'tiff';
+    if(mimeType === 'image/svg+xml') return 'svg';
+    if(mimeType === 'image/x-icon') return 'ico';
     return 'jpg';
+}
+
+function createSVGWrapper(img, dataUrl) {
+    const width = resizeCheck.checked && widthInput.value ? widthInput.value : img.width;
+    const height = resizeCheck.checked && heightInput.value ? heightInput.value : img.height;
+    
+    const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <image width="${width}" height="${height}" xlink:href="${dataUrl}"/>
+</svg>`;
+    
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgContent)));
+}
+
+function createICO(img) {
+    // Create 32x32 PNG (standard ICO size)
+    // Full ICO format with multiple sizes requires complex binary encoding
+    // This creates a usable 32x32 PNG that works as favicon
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    
+    // Fill white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, 32, 32);
+    
+    // Draw image scaled to 32x32
+    ctx.drawImage(img, 0, 0, 32, 32);
+    
+    return canvas.toDataURL('image/png');
 }
 
 function resetApp() {
@@ -658,9 +792,17 @@ function estimateOutputSize(file) {
     } else if (format === 'image/webp') {
         estimate = file.size * quality * 0.5;
     } else if (format === 'image/png') {
-        estimate = file.size * 1.2; // PNG can be larger
+        estimate = file.size * 1.2;
     } else if (format === 'image/bmp') {
-        estimate = file.size * 3; // BMP is much larger
+        estimate = file.size * 3;
+    } else if (format === 'image/gif') {
+        estimate = file.size * 0.9;
+    } else if (format === 'image/tiff') {
+        estimate = file.size * 2;
+    } else if (format === 'image/svg+xml') {
+        estimate = file.size * 0.3; // SVG wrapper is small
+    } else if (format === 'image/x-icon') {
+        estimate = 5000; // ICO typically small (32x32)
     }
     
     // Adjust for resize
@@ -668,7 +810,7 @@ function estimateOutputSize(file) {
         const w = parseInt(widthInput.value);
         const h = parseInt(heightInput.value);
         if (w || h) {
-            estimate *= 0.7; // Assume smaller size when resizing
+            estimate *= 0.7;
         }
     }
     

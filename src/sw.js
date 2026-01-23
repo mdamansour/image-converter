@@ -1,11 +1,12 @@
-const CACHE_NAME = "image-converter-v2";
+const CACHE_NAME = "image-converter-v3";
 const ASSETS_TO_CACHE = [
     "./",
     "./index.html",
     "./style.css",
     "./script.js",
     "./manifest.json",
-    "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+    "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+    "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"
 ];
 
 // 1. Install Event: Cache files
