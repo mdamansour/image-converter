@@ -29,6 +29,7 @@ const toast = document.getElementById('toast');
 
 // --- State Variables ---
 let fileQueue = []; // Array of { file, id, status }
+let draggedItemId = null;
 
 // --- Event Listeners ---
 
@@ -130,6 +131,33 @@ clearQueueBtn.addEventListener('click', () => {
 // 4. Conversion Logic
 convertBtn.addEventListener('click', processBatch);
 
+// 5. Keyboard Shortcuts
+document.addEventListener('keydown', (e) => {
+    // Enter to convert
+    if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && fileQueue.length > 0 && !convertBtn.disabled) {
+        if (document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault();
+            convertBtn.click();
+        }
+    }
+    
+    // Escape to clear/reset
+    if (e.key === 'Escape') {
+        if (fileQueue.length > 0) {
+            clearQueueBtn.click();
+        }
+    }
+    
+    // Space/Enter to upload when focused on drop zone
+    if ((e.key === ' ' || e.key === 'Enter') && document.activeElement === dropZone) {
+        e.preventDefault();
+        fileInput.click();
+    }
+});
+
+// Make drop zone focusable
+dropZone.setAttribute('tabindex', '0');
+
 // --- Core Functions ---
 
 function handleFiles(files) {
@@ -185,10 +213,12 @@ function generateThumbnail(file, item) {
             
             ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
             item.thumbnail = canvas.toDataURL();
+            item.thumbnailLoading = false;
             updateQueueUI();
         };
         img.src = e.target.result;
     };
+    item.thumbnailLoading = true;
     reader.readAsDataURL(file);
 }
 
@@ -209,9 +239,14 @@ function updateQueueUI() {
         const div = document.createElement('div');
         div.className = 'file-item';
         
-        const thumbnailHTML = item.thumbnail 
-            ? `<img src="${item.thumbnail}" class="file-thumbnail" alt="thumbnail">` 
-            : `<div class="file-thumbnail-placeholder">📄</div>`;
+        let thumbnailHTML;
+        if (item.thumbnailLoading) {
+            thumbnailHTML = `<div class="file-thumbnail-placeholder skeleton-loading"></div>`;
+        } else if (item.thumbnail) {
+            thumbnailHTML = `<img src="${item.thumbnail}" class="file-thumbnail" alt="thumbnail">`;
+        } else {
+            thumbnailHTML = `<div class="file-thumbnail-placeholder">📄</div>`;
+        }
         
         let statusHTML = '';
         if (item.status === 'processing') {
@@ -253,6 +288,20 @@ function updateQueueUI() {
             ${statusHTML}
             <button class="remove-btn" data-id="${item.id}" title="Remove file">✕</button>
         `;
+        
+        // Make draggable
+        div.setAttribute('draggable', item.status === 'pending');
+        div.dataset.id = item.id;
+        
+        if (item.status === 'pending') {
+            div.addEventListener('dragstart', handleDragStart);
+            div.addEventListener('dragover', handleDragOver);
+            div.addEventListener('drop', handleDrop);
+            div.addEventListener('dragend', handleDragEnd);
+            div.addEventListener('dragenter', handleDragEnter);
+            div.addEventListener('dragleave', handleDragLeave);
+        }
+        
         fileList.appendChild(div);
     });
     
@@ -515,6 +564,87 @@ function retryFile(id) {
         updateQueueUI();
         showToast('File reset - click Convert to retry');
     }
+}
+
+// Drag-to-reorder handlers
+function handleDragStart(e) {
+    draggedItemId = e.currentTarget.dataset.id;
+    e.currentTarget.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+    e.currentTarget.style.opacity = '1';
+    // Remove all drag-over classes
+    document.querySelectorAll('.file-item').forEach(item => {
+        item.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    const currentId = e.currentTarget.dataset.id;
+    if (currentId !== draggedItemId) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        
+        if (e.clientY < midpoint) {
+            e.currentTarget.classList.add('drag-over-top');
+            e.currentTarget.classList.remove('drag-over-bottom');
+        } else {
+            e.currentTarget.classList.add('drag-over-bottom');
+            e.currentTarget.classList.remove('drag-over-top');
+        }
+    }
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    const targetId = e.currentTarget.dataset.id;
+    if (draggedItemId === targetId) return;
+    
+    const draggedIndex = fileQueue.findIndex(f => f.id === draggedItemId);
+    const targetIndex = fileQueue.findIndex(f => f.id === targetId);
+    
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+        // Remove dragged item
+        const [draggedItem] = fileQueue.splice(draggedIndex, 1);
+        
+        // Determine insert position based on drop location
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        let insertIndex = targetIndex;
+        
+        if (e.clientY > midpoint) {
+            insertIndex++;
+        }
+        
+        // Adjust if we removed from before the target
+        if (draggedIndex < targetIndex) {
+            insertIndex--;
+        }
+        
+        // Insert at new position
+        fileQueue.splice(insertIndex, 0, draggedItem);
+        updateQueueUI();
+        showToast('↕️ File reordered');
+    }
+    
+    return false;
 }
 
 function estimateOutputSize(file) {
