@@ -1,202 +1,224 @@
-// --- Elements ---
+// --- DOM Elements ---
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
-const previewContainer = document.getElementById('previewContainer');
-const controls = document.getElementById('controls');
+const workspace = document.getElementById('workspace');
 const previewImg = document.getElementById('preview');
-const fileDetails = document.getElementById('fileDetails');
+const fileInfo = document.getElementById('fileInfo');
+
+// Controls
 const formatSelect = document.getElementById('formatSelect');
 const qualityGroup = document.getElementById('qualityGroup');
 const qualityRange = document.getElementById('qualityRange');
 const qualityValue = document.getElementById('qualityValue');
+
+// Resize Controls
+const resizeCheck = document.getElementById('resizeCheck');
+const resizeControls = document.getElementById('resizeControls');
+const widthInput = document.getElementById('widthInput');
+const heightInput = document.getElementById('heightInput');
+
+// Buttons & Toast
 const convertBtn = document.getElementById('convertBtn');
 const resetBtn = document.getElementById('resetBtn');
 const toast = document.getElementById('toast');
 
-// --- State ---
+// --- State Variables ---
 let currentFile = null;
-let originalImage = null; // Stores the actual Image object
+let originalImage = null; // Image Object
+let aspectRatio = 0;
 
 // --- Event Listeners ---
 
-// Drag and Drop Logic
+// 1. Upload Logic
+dropZone.addEventListener('click', () => fileInput.click());
+
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.classList.add('drag-over');
 });
-
-dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('drag-over');
-});
-
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('drag-over');
-    if (e.dataTransfer.files.length > 0) {
-        handleFile(e.dataTransfer.files[0]);
-    }
+    if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
 });
-
-// Click to Upload
-dropZone.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        handleFile(e.target.files[0]);
-    }
+    if(e.target.files.length) handleFile(e.target.files[0]);
 });
 
-// Slider Updates
+// 2. Settings Logic
 qualityRange.addEventListener('input', (e) => {
-    const val = Math.round(e.target.value * 100);
-    qualityValue.textContent = `${val}%`;
+    qualityValue.textContent = Math.round(e.target.value * 100) + '%';
 });
 
-// Format Change Logic (Smart Format Handling)
 formatSelect.addEventListener('change', (e) => {
-    const format = e.target.value;
-    // PNG and BMP are lossless, so quality slider doesn't apply
-    if (format === 'image/png' || format === 'image/bmp') {
-        qualityGroup.classList.add('disabled-control');
+    // Disable quality for lossless formats
+    if(e.target.value === 'image/png' || e.target.value === 'image/bmp') {
+        qualityGroup.style.opacity = '0.5';
+        qualityRange.disabled = true;
     } else {
-        qualityGroup.classList.remove('disabled-control');
+        qualityGroup.style.opacity = '1';
+        qualityRange.disabled = false;
     }
 });
 
-// Buttons
-convertBtn.addEventListener('click', convertAndDownload);
-resetBtn.addEventListener('click', resetUI);
+// 3. Resize Logic (Aspect Ratio Lock)
+resizeCheck.addEventListener('change', (e) => {
+    if(e.target.checked) {
+        resizeControls.classList.remove('disabled');
+        // Pre-fill with original dimensions if inputs are empty
+        if(!widthInput.value) widthInput.value = originalImage.width;
+        if(!heightInput.value) heightInput.value = originalImage.height;
+    } else {
+        resizeControls.classList.add('disabled');
+    }
+});
+
+// Auto-calculate height when width changes
+widthInput.addEventListener('input', () => {
+    if(originalImage && aspectRatio && widthInput.value) {
+        heightInput.value = Math.round(widthInput.value / aspectRatio);
+    }
+});
+
+// Auto-calculate width when height changes
+heightInput.addEventListener('input', () => {
+    if(originalImage && aspectRatio && heightInput.value) {
+        widthInput.value = Math.round(heightInput.value * aspectRatio);
+    }
+});
+
+// 4. Action Buttons
+resetBtn.addEventListener('click', resetApp);
+convertBtn.addEventListener('click', processConversion);
 
 // --- Core Functions ---
 
-function showToast(message) {
-    toast.textContent = message;
-    toast.className = "show";
-    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-}
-
 function handleFile(file) {
-    // Validation
     if (!file.type.startsWith('image/')) {
-        showToast("Error: Please upload a valid image file.");
+        showToast('⚠️ Please upload a valid image file');
         return;
     }
 
     currentFile = file;
-    
     const reader = new FileReader();
+    
     reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
             originalImage = img;
-            setupPreview(file.name, img.width, img.height, file.size);
+            aspectRatio = img.width / img.height;
+            
+            // Update UI
+            previewImg.src = e.target.result;
+            fileInfo.textContent = `${file.name} | ${img.width}x${img.height}px | ${(file.size/1024/1024).toFixed(2)}MB`;
+            
+            // Clear resize inputs on new file load
+            widthInput.value = '';
+            heightInput.value = '';
+            
+            // Switch Views
+            dropZone.style.display = 'none';
+            workspace.classList.remove('hidden');
         };
         img.src = e.target.result;
-        // Set preview source immediately
-        previewImg.src = e.target.result;
     };
     reader.readAsDataURL(file);
 }
 
-function setupPreview(name, width, height, sizeBytes) {
-    const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
+function processConversion() {
+    if(!originalImage) return;
     
-    fileDetails.innerHTML = `
-        <strong>${name}</strong><br>
-        Original: ${width}x${height} px • ${sizeMB} MB
-    `;
-
-    // UI Transitions
-    dropZone.classList.add('hidden');
-    previewContainer.style.display = 'flex';
-    controls.style.display = 'block';
-}
-
-function convertAndDownload() {
-    if (!originalImage) return;
-
-    showToast("Processing conversion...");
+    convertBtn.textContent = 'Processing...';
     convertBtn.disabled = true;
-    convertBtn.textContent = "Processing...";
 
-    // Use setTimeout to allow the UI to render the Toast before heavy canvas work
+    // Small timeout to let UI update
     setTimeout(() => {
         try {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
-            // Set canvas size to match original image
-            canvas.width = originalImage.width;
-            canvas.height = originalImage.height;
 
-            const targetFormat = formatSelect.value;
-            const quality = parseFloat(qualityRange.value);
+            // Determine Output Dimensions
+            let finalWidth = originalImage.width;
+            let finalHeight = originalImage.height;
 
-            // --- SMART FORMAT HANDLING ---
-            
-            // 1. JPEG Transparency Fix
-            // If converting to JPEG, transparent pixels turn black by default.
-            // We fill the canvas with white first to handle this.
-            if (targetFormat === 'image/jpeg' || targetFormat === 'image/bmp') {
+            if(resizeCheck.checked) {
+                // ParseInt ensures we get numbers; fallback to original if empty/invalid
+                finalWidth = parseInt(widthInput.value) || finalWidth;
+                finalHeight = parseInt(heightInput.value) || finalHeight;
+            }
+
+            canvas.width = finalWidth;
+            canvas.height = finalHeight;
+
+            // Handle Transparency for JPEG/BMP (Fill White)
+            if(formatSelect.value === 'image/jpeg' || formatSelect.value === 'image/bmp') {
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // Draw the image onto the canvas
-            ctx.drawImage(originalImage, 0, 0);
+            // Draw Image (High Quality Scaling)
+            ctx.drawImage(originalImage, 0, 0, finalWidth, finalHeight);
 
-            // Convert to data URL
-            const newDataUrl = canvas.toDataURL(targetFormat, quality);
+            // Export
+            const quality = parseFloat(qualityRange.value);
+            const format = formatSelect.value;
+            
+            const dataUrl = canvas.toDataURL(format, quality);
+            
+            triggerDownload(dataUrl, currentFile.name, format);
+            showToast('✅ Download Started!');
 
-            // Trigger Download
-            const link = document.createElement('a');
-            link.download = generateFilename(currentFile.name, targetFormat);
-            link.href = newDataUrl;
-            document.body.appendChild(link); // Required for Firefox
-            link.click();
-            document.body.removeChild(link);
-
-            showToast("Download started!");
-        } catch (err) {
-            console.error(err);
-            showToast("Error during conversion.");
+        } catch (error) {
+            console.error(error);
+            showToast('❌ Error converting image');
         } finally {
+            // FIXED: 'finally' instead of 'final'
+            convertBtn.textContent = 'Convert & Download';
             convertBtn.disabled = false;
-            convertBtn.textContent = "Convert & Download";
         }
-    }, 100);
+    }, 50);
 }
 
-function generateFilename(originalName, mimeType) {
-    const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-    let ext = "";
+function triggerDownload(url, originalName, mimeType) {
+    const link = document.createElement('a');
+    const namePart = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
     
-    switch (mimeType) {
-        case 'image/jpeg': ext = 'jpg'; break;
-        case 'image/png': ext = 'png'; break;
-        case 'image/webp': ext = 'webp'; break;
-        case 'image/bmp': ext = 'bmp'; break;
-        default: ext = 'jpg';
-    }
+    let ext = 'jpg';
+    if(mimeType === 'image/png') ext = 'png';
+    if(mimeType === 'image/webp') ext = 'webp';
+    if(mimeType === 'image/bmp') ext = 'bmp';
 
-    return `${nameWithoutExt}_converted.${ext}`;
+    link.download = `${namePart}_converted.${ext}`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
-function resetUI() {
+function resetApp() {
     currentFile = null;
     originalImage = null;
-    previewImg.src = "";
-    fileInput.value = ""; // Reset input so same file can be selected again
-    
-    dropZone.classList.remove('hidden');
-    previewContainer.style.display = 'none';
-    controls.style.display = 'none';
+    dropZone.style.display = 'block';
+    workspace.classList.add('hidden');
+    fileInput.value = ''; // Allow re-selecting same file
+    resizeCheck.checked = false;
+    resizeControls.classList.add('disabled');
+    widthInput.value = '';
+    heightInput.value = '';
 }
 
-// --- PWA Service Worker Registration (NEW) ---
+function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// Service Worker Registration
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered!', reg))
-            .catch(err => console.log('Service Worker registration failed:', err));
+            .then(() => console.log('Service Worker Registered'))
+            .catch(err => console.error('Service Worker Failed:', err));
     });
 }
