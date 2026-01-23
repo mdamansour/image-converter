@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Free secure online image converter. Batch convert JPG, PNG, WEBP, and BMP locally in your browser. No file uploads, 100% privacy-first.">
+    <meta name="description" content="Open-source batch image converter that never uploads your files. Convert hundreds of images locally in your browser. 100% private, offline-capable, and completely free forever.">
     <meta name="theme-color" content="#4f46e5">
-    <title>Secure Batch Image Converter | Free & Offline</title>
+    <title>Open Source Image Converter | 100% Private & Offline</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
@@ -21,9 +21,17 @@
 <main class="app-wrapper">
     <div class="converter-card">
         <header>
-            <div class="badge">Batch Mode Active</div>
+            <div class="badge-row">
+                <div class="badge">100% Open Source</div>
+                <a href="https://github.com/mdamansour/image-converter" target="_blank" rel="noopener" class="github-link" title="View source code on GitHub">
+                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                    <span>View on GitHub</span>
+                </a>
+            </div>
             <h1>Image Converter</h1>
-            <p class="subtitle">Convert hundreds of images to any format. Fast, private, and 100% free.</p>
+            <p class="subtitle">The only open-source batch image converter that <strong>never uploads your files</strong>. Convert hundreds of images instantly—all processing happens in your browser.</p>
         </header>
 
         <div id="dropZone" class="drop-zone">
@@ -116,23 +124,117 @@
     <section class="info-section">
         <div class="info-grid">
             <div class="info-card">
-                <h3>📦 Batch Processing</h3>
-                <p>Convert hundreds of photos at once. We automatically bundle them into a ZIP file for easy download.</p>
+                <h3>� Your Privacy, Guaranteed</h3>
+                <p>Unlike other converters, your images <strong>never leave your device</strong>. All processing happens locally in your browser using HTML5 Canvas. No servers, no uploads, no tracking of your files.</p>
             </div>
             <div class="info-card">
-                <h3>🔒 100% Private</h3>
-                <p>Your photos never leave your browser. Zero server uploads means zero privacy risk.</p>
+                <h3>📖 100% Open Source</h3>
+                <p>Our code is public on GitHub for complete transparency. Inspect, audit, or contribute. No hidden behavior, no proprietary black boxes.</p>
             </div>
             <div class="info-card">
-                <h3>⚡ Offline Capable</h3>
-                <p>Install this app on your phone or desktop. It works perfectly even without an internet connection.</p>
+                <h3>📦 True Batch Power</h3>
+                <p>Convert hundreds of images simultaneously. Automatic ZIP bundling, drag-to-reorder queue, and intelligent quality controls—features usually locked behind paywalls.</p>
             </div>
             <div class="info-card">
-                <h3>🎨 8+ Formats Supported</h3>
-                <p>Convert between JPG, PNG, WEBP, GIF, BMP, TIFF, SVG, ICO. Read HEIC/HEIF from iPhone. All processing in your browser.</p>
+                <h3>⚡ Works Offline Forever</h3>
+                <p>Install as a PWA on any device. Once installed, works perfectly without internet. Your tool, your device, your control.</p>
+            </div>
+            <div class="info-card">
+                <h3>🎨 9 Formats Supported</h3>
+                <p>JPG, PNG, WEBP, GIF, BMP, TIFF, SVG, ICO, plus HEIC reading. Professional-grade format support without enterprise pricing.</p>
+            </div>
+            <div class="info-card">
+                <h3>🚀 No Limits, No Tricks</h3>
+                <p>No file size caps. No daily limits. No "upgrade now" popups. No ads. No account required. Just a tool that respects you.</p>
             </div>
         </div>
     </section>
+
+    <section class="how-it-works">
+        <h2>How Your Privacy is Protected</h2>
+        <div class="tech-explanation">
+            <div class="tech-step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Files Stay Local</h4>
+                    <p>When you select images, they're read directly into your browser's memory. They never touch a server.</p>
+                </div>
+            </div>
+            <div class="tech-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Browser Does the Work</h4>
+                    <p>Conversion uses the HTML5 Canvas API built into your browser. All processing happens on your CPU.</p>
+                </div>
+            </div>
+            <div class="tech-step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>Direct Download</h4>
+                    <p>Converted files are generated in memory and downloaded directly to your device. No cloud storage involved.</p>
+                </div>
+            </div>
+        </div>
+        <div class="open-source-cta">
+            <p>Don't just trust our word—<a href="https://github.com/mdamansour/image-converter" target="_blank" rel="noopener">inspect the source code</a> yourself. Built with vanilla JavaScript for maximum transparency.</p>
+        </div>
+    </section>
+
+    <section class="comparison-section">
+        <h2>Why Choose This Over Other Converters?</h2>
+        <div class="comparison-table">
+            <div class="comparison-row comparison-header">
+                <div class="feature-name">Feature</div>
+                <div class="us">This Tool</div>
+                <div class="them">CloudConvert, Convertio, etc.</div>
+            </div>
+            <div class="comparison-row">
+                <div class="feature-name">File Privacy</div>
+                <div class="us"><span class="check">✓</span> Never uploaded</div>
+                <div class="them"><span class="cross">✗</span> Uploaded to servers</div>
+            </div>
+            <div class="comparison-row">
+                <div class="feature-name">Open Source</div>
+                <div class="us"><span class="check">✓</span> Fully transparent</div>
+                <div class="them"><span class="cross">✗</span> Proprietary code</div>
+            </div>
+            <div class="comparison-row">
+                <div class="feature-name">Works Offline</div>
+                <div class="us"><span class="check">✓</span> Install & use anywhere</div>
+                <div class="them"><span class="cross">✗</span> Internet required</div>
+            </div>
+            <div class="comparison-row">
+                <div class="feature-name">File Size Limits</div>
+                <div class="us"><span class="check">✓</span> Only browser memory</div>
+                <div class="them"><span class="cross">✗</span> Typically 100MB-1GB</div>
+            </div>
+            <div class="comparison-row">
+                <div class="feature-name">Batch Processing</div>
+                <div class="us"><span class="check">✓</span> Unlimited files</div>
+                <div class="them"><span class="warning">~</span> Limited or paid</div>
+            </div>
+            <div class="comparison-row">
+                <div class="feature-name">Cost</div>
+                <div class="us"><span class="check">✓</span> Free forever</div>
+                <div class="them"><span class="cross">✗</span> Freemium/Subscription</div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="https://github.com/mdamansour/image-converter" target="_blank" rel="noopener">GitHub Repository</a>
+                <a href="https://github.com/mdamansour/image-converter/blob/main/PRIVACY.md" target="_blank" rel="noopener">Privacy Policy</a>
+                <a href="https://github.com/mdamansour/image-converter/issues" target="_blank" rel="noopener">Report Issue</a>
+                <a href="https://www.linkedin.com/in/mdamansour/" target="_blank" rel="noopener">Developer</a>
+            </div>
+            <div class="footer-note">
+                <p>Made with privacy in mind. No servers, no tracking of your files, no data collection.</p>
+                <p class="license">Open source under MIT License. Free to use, modify, and distribute.</p>
+            </div>
+        </div>
+    </footer>
 </main>
 
 <div id="toast">Notification</div>

@@ -1,11 +1,11 @@
 {
-  "name": "Secure Image Converter",
+  "name": "Image Converter - Privacy First",
   "short_name": "Converter",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f3f4f6",
   "theme_color": "#4f46e5",
-  "description": "Convert images locally in your browser. No server upload.",
+  "description": "Open-source batch image converter. All processing happens locally—your images never leave your device. Private, fast, and offline-capable.",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/3342/3342137.png",

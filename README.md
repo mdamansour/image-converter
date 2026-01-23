@@ -1,8 +1,20 @@
-# Image Converter - Professional Edition 🎨
+# Image Converter - Open Source & Privacy-First 🎨
 
-A modern, client-side batch image converter focused on what users actually need: fast format conversion with quality control.
+> **The only open-source batch image converter that never uploads your files.**
+
+A modern, client-side batch image converter built with privacy as the #1 priority. All processing happens locally in your browser—your images never touch a server.
+
+🌐 **Live Demo:** [https://image-converter.amansour.me/](https://image-converter.amansour.me/)
 
 > 📚 **New to this project?** Start with [DOCS_INDEX.md](DOCS_INDEX.md) for guided documentation navigation.
+
+## 🔒 Privacy First
+
+Unlike other converters that upload your files to servers, this tool processes everything **locally in your browser**:
+- ✅ **Zero uploads** - Files never leave your device
+- ✅ **Open source** - Fully auditable code
+- ✅ **Offline capable** - Works without internet
+- ✅ **No tracking** - Your files, your privacy
 
 ## ✨ Features
 
@@ -10,18 +22,18 @@ A modern, client-side batch image converter focused on what users actually need:
 - 🎨 **Multiple Formats** - JPG, PNG, WEBP, GIF, BMP, TIFF, SVG, ICO, HEIC
 - 💾 **Quality Control** - Adjustable compression for lossy formats
 - 📐 **Optional Resize** - Create uniform thumbnails or profile pictures
-- 🔒 **100% Private** - All processing happens in your browser
 - 📦 **ZIP Download** - Automatic ZIP for batch conversions
 - 🎯 **Drag & Drop** - Easy file upload and reordering
 - 💨 **Lightning Fast** - No server uploads, instant processing
 - 📱 **PWA Ready** - Install as a desktop/mobile app
 - 🌐 **Offline Support** - Works without internet
+- 🆓 **Completely Free** - No limits, no ads, no upsells
 
 ## 🎯 Core Value
 
 **Convert images to any format. That's it. Done right.**
 
-Unlike bloated editors, this tool focuses on the ONE thing users need most: converting image formats quickly and privately. No unnecessary features, no confusion, just smooth batch conversion.
+Unlike bloated editors and cloud converters, this tool focuses on the ONE thing users need most: converting image formats quickly and **privately**. No unnecessary features, no server uploads, no confusion—just smooth batch conversion that respects your privacy.
 
 ## 🏗️ Architecture
 
