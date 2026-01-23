@@ -71,9 +71,12 @@ resizeCheck.addEventListener('change', (e) => {
 
 // 3. Queue Management
 clearQueueBtn.addEventListener('click', () => {
-    fileQueue = [];
-    updateQueueUI();
-    resetApp();
+    if (fileQueue.length > 0 && confirm(`Remove all ${fileQueue.length} files from queue?`)) {
+        fileQueue = [];
+        updateQueueUI();
+        resetApp();
+        showToast('Queue cleared');
+    }
 });
 
 // 4. Conversion Logic
@@ -86,11 +89,15 @@ function handleFiles(files) {
     
     Array.from(files).forEach(file => {
         if (file.type.startsWith('image/')) {
-            fileQueue.push({
+            const item = {
                 file: file,
                 id: Math.random().toString(36).substr(2, 9),
-                status: 'pending' // pending, processing, done
-            });
+                status: 'pending', // pending, processing, done
+                thumbnail: null,
+                format: getFormatName(file.type)
+            };
+            fileQueue.push(item);
+            generateThumbnail(file, item);
             newFilesAdded = true;
         }
     });
@@ -99,6 +106,7 @@ function handleFiles(files) {
         dropZone.style.display = 'none';
         workspace.classList.remove('hidden');
         updateQueueUI();
+        updateConvertButton();
         showToast(`Added ${files.length} images to queue`);
     } else {
         showToast('⚠️ No valid images found');
@@ -108,6 +116,39 @@ function handleFiles(files) {
     fileInput.value = '';
 }
 
+function generateThumbnail(file, item) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = 48;
+            canvas.width = size;
+            canvas.height = size;
+            
+            const scale = Math.max(size / img.width, size / img.height);
+            const x = (size - img.width * scale) / 2;
+            const y = (size - img.height * scale) / 2;
+            
+            ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+            item.thumbnail = canvas.toDataURL();
+            updateQueueUI();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function getFormatName(mimeType) {
+    if (mimeType === 'image/png') return 'PNG';
+    if (mimeType === 'image/jpeg') return 'JPG';
+    if (mimeType === 'image/webp') return 'WEBP';
+    if (mimeType === 'image/bmp') return 'BMP';
+    if (mimeType === 'image/gif') return 'GIF';
+    return 'IMG';
+}
+
 function updateQueueUI() {
     queueCount.textContent = fileQueue.length;
     fileList.innerHTML = '';
@@ -115,48 +156,92 @@ function updateQueueUI() {
     fileQueue.forEach(item => {
         const div = document.createElement('div');
         div.className = 'file-item';
+        
+        const thumbnailHTML = item.thumbnail 
+            ? `<img src="${item.thumbnail}" class="file-thumbnail" alt="thumbnail">` 
+            : `<div class="file-thumbnail-placeholder">📄</div>`;
+        
         div.innerHTML = `
-            <div style="font-size: 1.5rem;">📄</div>
+            ${thumbnailHTML}
             <div class="file-info">
                 <div class="file-name">${item.file.name}</div>
-                <div class="file-meta">${(item.file.size / 1024 / 1024).toFixed(2)} MB</div>
+                <div class="file-meta">
+                    <span class="format-badge">${item.format}</span>
+                    ${(item.file.size / 1024 / 1024).toFixed(2)} MB
+                </div>
             </div>
             <div class="status-indicator ${item.status === 'done' ? 'done' : ''}">
                 ${item.status.toUpperCase()}
             </div>
+            <button class="remove-btn" data-id="${item.id}" title="Remove file">✕</button>
         `;
         fileList.appendChild(div);
+    });
+    
+    // Add event listeners to remove buttons
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.target.dataset.id;
+            removeFile(id);
+        });
     });
 
     if (fileQueue.length === 0) resetApp();
 }
 
+function removeFile(id) {
+    fileQueue = fileQueue.filter(item => item.id !== id);
+    updateQueueUI();
+    updateConvertButton();
+    showToast('File removed from queue');
+}
+
+function updateConvertButton() {
+    if (fileQueue.length === 1) {
+        convertBtn.innerHTML = '<span>Convert & Download</span>';
+    } else {
+        convertBtn.innerHTML = '<span>Convert All & Download ZIP</span>';
+    }
+}
+
 async function processBatch() {
     if(fileQueue.length === 0) return;
 
-    convertBtn.textContent = 'Processing...';
+    const totalFiles = fileQueue.length;
+    const isSingleFile = totalFiles === 1;
+    
     convertBtn.disabled = true;
     
-    // Initialize ZIP
-    const zip = new JSZip();
+    // Initialize ZIP only if multiple files
+    const zip = isSingleFile ? null : new JSZip();
     let processedCount = 0;
+    let singleFileData = null;
+    let singleFileName = null;
 
     try {
         for (let i = 0; i < fileQueue.length; i++) {
             const item = fileQueue[i];
             item.status = 'processing';
+            
+            // Update progress
+            convertBtn.textContent = `Processing ${i + 1}/${totalFiles}...`;
             updateQueueUI();
 
             // Convert Image
             const convertedData = await convertSingleImage(item.file);
             
-            // Add to ZIP
             const ext = getExtension(formatSelect.value);
             const filename = item.file.name.replace(/\.[^/.]+$/, "") + `_converted.${ext}`;
             
-            // Remove Data URL prefix (data:image/xxx;base64,)
-            const base64Data = convertedData.split(',')[1];
-            zip.file(filename, base64Data, {base64: true});
+            if (isSingleFile) {
+                // Store for direct download
+                singleFileData = convertedData;
+                singleFileName = filename;
+            } else {
+                // Add to ZIP
+                const base64Data = convertedData.split(',')[1];
+                zip.file(filename, base64Data, {base64: true});
+            }
 
             item.status = 'done';
             processedCount++;
@@ -164,26 +249,36 @@ async function processBatch() {
 
         updateQueueUI();
         
-        // Generate and Download ZIP
-        showToast('📦 Generatng ZIP file...');
-        const zipContent = await zip.generateAsync({type: "blob"});
-        const zipUrl = URL.createObjectURL(zipContent);
-        
-        const link = document.createElement('a');
-        link.href = zipUrl;
-        link.download = "converted_images.zip";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(zipUrl);
-
-        showToast('✅ Download Started!');
+        if (isSingleFile) {
+            // Direct download for single file
+            const link = document.createElement('a');
+            link.href = singleFileData;
+            link.download = singleFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('✅ Download Started!');
+        } else {
+            // Generate and Download ZIP for multiple files
+            showToast('📦 Generating ZIP file...');
+            const zipContent = await zip.generateAsync({type: "blob"});
+            const zipUrl = URL.createObjectURL(zipContent);
+            
+            const link = document.createElement('a');
+            link.href = zipUrl;
+            link.download = "converted_images.zip";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(zipUrl);
+            showToast('✅ Download Started!');
+        }
 
     } catch (error) {
         console.error(error);
-        showToast('❌ Error during batch processing');
+        showToast('❌ Error during conversion');
     } finally {
-        convertBtn.textContent = 'Convert All & Download ZIP';
+        convertBtn.textContent = isSingleFile ? 'Convert & Download' : 'Convert All & Download ZIP';
         convertBtn.disabled = false;
     }
 }
