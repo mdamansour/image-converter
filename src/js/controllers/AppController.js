@@ -554,7 +554,7 @@ export class AppController {
         if (saved) {
             appConfig.updateSettings(saved);
             
-            this.dom.formatSelect.value = saved.format || IMAGE_FORMATS.JPEG;
+            this.dom.formatSelect.value = saved.format || 'same';
             this.dom.qualityRange.value = saved.quality || 0.9;
             this.dom.qualityValue.textContent = Math.round(this.dom.qualityRange.value * 100) + '%';
             this.dom.resizeCheck.checked = saved.resize || false;

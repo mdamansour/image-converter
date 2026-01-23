@@ -76,7 +76,7 @@ export const CROP_RATIO_VALUES = {
 };
 
 export const DEFAULT_SETTINGS = {
-    format: IMAGE_FORMATS.JPEG,
+    format: 'same',
     quality: 0.9,
     resize: false,
     width: '',
