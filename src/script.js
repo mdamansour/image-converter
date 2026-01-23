@@ -31,6 +31,12 @@ const toast = document.getElementById('toast');
 let fileQueue = []; // Array of { file, id, status }
 let draggedItemId = null;
 
+// Edit state
+let rotation = 0; // 0, 90, 180, 270
+let flipHorizontal = false;
+let flipVertical = false;
+let cropSettings = null; // { x, y, width, height }
+
 // --- Event Listeners ---
 
 // 1. Upload Logic
@@ -59,7 +65,9 @@ qualityRange.addEventListener('input', (e) => {
 
 formatSelect.addEventListener('change', (e) => {
     const lossy = ['image/jpeg', 'image/webp'];
-    if(lossy.includes(e.target.value)) {
+    const value = e.target.value;
+    
+    if(value === 'same' || lossy.includes(value)) {
         qualityGroup.style.opacity = '1';
         qualityRange.disabled = false;
     } else {
@@ -132,7 +140,44 @@ clearQueueBtn.addEventListener('click', () => {
 // 4. Conversion Logic
 convertBtn.addEventListener('click', processBatch);
 
-// 5. Keyboard Shortcuts
+// 5. Edit Controls
+document.getElementById('rotate90Btn').addEventListener('click', () => {
+    rotation = (rotation + 90) % 360;
+    updateEditIndicator();
+    showToast('↻ Rotation: ' + rotation + '°');
+});
+
+document.getElementById('rotate180Btn').addEventListener('click', () => {
+    rotation = (rotation + 180) % 360;
+    updateEditIndicator();
+    showToast('↻ Rotation: ' + rotation + '°');
+});
+
+document.getElementById('rotate270Btn').addEventListener('click', () => {
+    rotation = (rotation + 270) % 360;
+    updateEditIndicator();
+    showToast('↻ Rotation: ' + rotation + '°');
+});
+
+document.getElementById('flipHBtn').addEventListener('click', () => {
+    flipHorizontal = !flipHorizontal;
+    updateEditIndicator();
+    showToast((flipHorizontal ? '✅' : '❌') + ' Flip Horizontal');
+});
+
+document.getElementById('flipVBtn').addEventListener('click', () => {
+    flipVertical = !flipVertical;
+    updateEditIndicator();
+    showToast((flipVertical ? '✅' : '❌') + ' Flip Vertical');
+});
+
+document.getElementById('cropBtn').addEventListener('click', openCropModal);
+document.getElementById('previewBtn').addEventListener('click', showPreview);
+document.getElementById('closePreviewBtn').addEventListener('click', () => {
+    document.getElementById('previewPanel').classList.add('hidden');
+});
+
+// 6. Keyboard Shortcuts
 document.addEventListener('keydown', (e) => {
     // Enter to convert
     if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && fileQueue.length > 0 && !convertBtn.disabled) {
@@ -513,7 +558,7 @@ function convertSingleImage(file) {
                 // Now process the converted blob as normal
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    processImage(event.target.result, resolve, reject);
+                    processImage(event.target.result, resolve, reject, file);
                 };
                 reader.readAsDataURL(convertedBlob);
             })
@@ -525,17 +570,22 @@ function convertSingleImage(file) {
             // Standard processing
             const reader = new FileReader();
             reader.onload = (event) => {
-                processImage(event.target.result, resolve, reject);
+                processImage(event.target.result, resolve, reject, file);
             };
             reader.readAsDataURL(file);
         }
     });
 }
 
-function processImage(dataUrl, resolve, reject) {
+function processImage(dataUrl, resolve, reject, originalFile) {
     const img = new Image();
     img.onload = () => {
-        const targetFormat = formatSelect.value;
+        let targetFormat = formatSelect.value;
+        
+        // Handle "same as original" format
+        if (targetFormat === 'same' && originalFile) {
+            targetFormat = originalFile.type || 'image/jpeg';
+        }
         
         // Handle SVG output (wrap raster image in SVG)
         if (targetFormat === 'image/svg+xml') {
@@ -551,12 +601,33 @@ function processImage(dataUrl, resolve, reject) {
             return;
         }
         
-        // Standard canvas conversion
+        // Standard canvas conversion with edits
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
         let targetWidth = img.width;
         let targetHeight = img.height;
+        
+        // Apply rotation to dimensions
+        if (rotation === 90 || rotation === 270) {
+            [targetWidth, targetHeight] = [targetHeight, targetWidth];
+        }
+
+        // Handle Cropping first
+        let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
+        if (cropSettings) {
+            sourceX = cropSettings.x;
+            sourceY = cropSettings.y;
+            sourceWidth = cropSettings.width;
+            sourceHeight = cropSettings.height;
+            targetWidth = sourceWidth;
+            targetHeight = sourceHeight;
+            
+            // Adjust for rotation
+            if (rotation === 90 || rotation === 270) {
+                [targetWidth, targetHeight] = [targetHeight, targetWidth];
+            }
+        }
 
         // Handle Resizing
         if (resizeCheck.checked) {
@@ -567,11 +638,11 @@ function processImage(dataUrl, resolve, reject) {
                 targetWidth = wInput;
                 targetHeight = hInput;
             } else if (wInput) {
-                const ratio = img.height / img.width;
+                const ratio = targetHeight / targetWidth;
                 targetWidth = wInput;
                 targetHeight = Math.round(wInput * ratio);
             } else if (hInput) {
-                const ratio = img.width / img.height;
+                const ratio = targetWidth / targetHeight;
                 targetHeight = hInput;
                 targetWidth = Math.round(hInput * ratio);
             }
@@ -586,7 +657,37 @@ function processImage(dataUrl, resolve, reject) {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        // Apply transformations
+        ctx.save();
+        
+        // Center point for transformations
+        const centerX = targetWidth / 2;
+        const centerY = targetHeight / 2;
+        
+        ctx.translate(centerX, centerY);
+        
+        // Apply rotation
+        if (rotation !== 0) {
+            ctx.rotate((rotation * Math.PI) / 180);
+        }
+        
+        // Apply flips
+        let scaleX = flipHorizontal ? -1 : 1;
+        let scaleY = flipVertical ? -1 : 1;
+        ctx.scale(scaleX, scaleY);
+        
+        // Draw image (accounting for crop)
+        const drawWidth = rotation === 90 || rotation === 270 ? targetHeight : targetWidth;
+        const drawHeight = rotation === 90 || rotation === 270 ? targetWidth : targetHeight;
+        
+        ctx.drawImage(
+            img,
+            sourceX, sourceY, sourceWidth, sourceHeight,
+            -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight
+        );
+        
+        ctx.restore();
+        
         resolve(canvas.toDataURL(targetFormat, parseFloat(qualityRange.value)));
     };
     img.onerror = reject;
@@ -646,6 +747,68 @@ function showToast(msg) {
     toast.textContent = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function updateEditIndicator() {
+    const hasEdits = rotation !== 0 || flipHorizontal || flipVertical || cropSettings;
+    const editBtns = document.querySelectorAll('.edit-btn');
+    
+    document.getElementById('rotate90Btn').classList.toggle('active', rotation === 90);
+    document.getElementById('rotate180Btn').classList.toggle('active', rotation === 180);
+    document.getElementById('rotate270Btn').classList.toggle('active', rotation === 270);
+    document.getElementById('flipHBtn').classList.toggle('active', flipHorizontal);
+    document.getElementById('flipVBtn').classList.toggle('active', flipVertical);
+    document.getElementById('cropBtn').classList.toggle('active', cropSettings !== null);
+}
+
+function showPreview() {
+    if (fileQueue.length === 0) {
+        showToast('⚠️ No files to preview');
+        return;
+    }
+    
+    const firstFile = fileQueue[0];
+    const previewPanel = document.getElementById('previewPanel');
+    const originalImg = document.getElementById('previewOriginal');
+    const convertedImg = document.getElementById('previewConverted');
+    const originalInfo = document.getElementById('originalInfo');
+    const convertedInfo = document.getElementById('convertedInfo');
+    
+    // Show original
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        originalImg.src = e.target.result;
+        originalInfo.textContent = `${firstFile.format} - ${(firstFile.file.size / 1024).toFixed(0)} KB`;
+        
+        // Generate preview conversion
+        try {
+            const converted = await convertSingleImage(firstFile.file);
+            convertedImg.src = converted;
+            
+            // Estimate size
+            const base64Length = converted.split(',')[1].length;
+            const sizeKB = (base64Length * 0.75 / 1024).toFixed(0);
+            const targetFormat = formatSelect.value === 'same' ? firstFile.format : getFormatName(formatSelect.value);
+            convertedInfo.textContent = `${targetFormat} - ~${sizeKB} KB`;
+        } catch (err) {
+            convertedInfo.textContent = 'Preview failed';
+        }
+    };
+    reader.readAsDataURL(firstFile.file);
+    
+    previewPanel.classList.remove('hidden');
+}
+
+function openCropModal() {
+    if (fileQueue.length === 0) {
+        showToast('⚠️ Add images first');
+        return;
+    }
+    
+    showToast('🚧 Crop feature - Basic implementation');
+    // Simplified: Set a default center crop
+    cropSettings = { x: 0, y: 0, width: 100, height: 100 };
+    updateEditIndicator();
 }
 
 function saveSettings() {

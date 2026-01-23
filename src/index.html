@@ -44,6 +44,7 @@
                 <div class="control-group">
                     <label>Target Format</label>
                     <select id="formatSelect">
+                        <option value="same">Same as Original (Compress)</option>
                         <option value="image/jpeg">JPG (Photos)</option>
                         <option value="image/png">PNG (Transparent)</option>
                         <option value="image/webp">WEBP (Web Optimized)</option>
@@ -61,6 +62,49 @@
                         <span id="qualityValue">90%</span>
                     </div>
                     <input type="range" id="qualityRange" min="0.1" max="1.0" step="0.05" value="0.9">
+                </div>
+
+                <div class="control-group full-width">
+                    <label>Image Editing</label>
+                    <div class="edit-controls">
+                        <div class="edit-group">
+                            <span class="edit-label">Rotate:</span>
+                            <button type="button" class="edit-btn" id="rotate90Btn" title="Rotate 90° clockwise">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                                </svg>
+                                90°
+                            </button>
+                            <button type="button" class="edit-btn" id="rotate180Btn" title="Rotate 180°">180°</button>
+                            <button type="button" class="edit-btn" id="rotate270Btn" title="Rotate 270° (90° counter-clockwise)">270°</button>
+                        </div>
+                        <div class="edit-group">
+                            <span class="edit-label">Flip:</span>
+                            <button type="button" class="edit-btn" id="flipHBtn" title="Flip horizontal">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2v20M6 6l-4 6 4 6M18 6l4 6-4 6"/>
+                                </svg>
+                                H
+                            </button>
+                            <button type="button" class="edit-btn" id="flipVBtn" title="Flip vertical">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M2 12h20M6 6l6-4 6 4M6 18l6 4 6-4"/>
+                                </svg>
+                                V
+                            </button>
+                        </div>
+                        <div class="edit-group">
+                            <span class="edit-label">Crop:</span>
+                            <button type="button" class="edit-btn" id="cropBtn" title="Crop image">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/>
+                                    <path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/>
+                                </svg>
+                                Crop
+                            </button>
+                        </div>
+                    </div>
+                    <p class="hint-text">Edits apply to all images in batch</p>
                 </div>
 
                 <div class="control-group full-width">
@@ -96,8 +140,39 @@
             <div id="fileList" class="file-list">
                 </div>
 
+            <div id="previewPanel" class="preview-panel hidden">
+                <div class="preview-header">
+                    <h4>Preview</h4>
+                    <button id="closePreviewBtn" class="text-btn">✕ Close</button>
+                </div>
+                <div class="preview-content">
+                    <div class="preview-section">
+                        <span class="preview-label">Original</span>
+                        <div class="preview-image-container">
+                            <img id="previewOriginal" alt="Original">
+                        </div>
+                        <span class="preview-info" id="originalInfo"></span>
+                    </div>
+                    <div class="preview-divider">→</div>
+                    <div class="preview-section">
+                        <span class="preview-label">Converted</span>
+                        <div class="preview-image-container">
+                            <img id="previewConverted" alt="Converted">
+                        </div>
+                        <span class="preview-info" id="convertedInfo"></span>
+                    </div>
+                </div>
+            </div>
+
             <div class="action-buttons">
                 <button id="addMoreBtn" class="btn btn-secondary">Add More</button>
+                <button id="previewBtn" class="btn btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Preview
+                </button>
                 <button id="convertBtn" class="btn btn-primary">
                     <span>Convert All & Download ZIP</span>
                 </button>
@@ -132,6 +207,38 @@
         </div>
     </section>
 </main>
+
+<div id="cropModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Crop Image</h3>
+            <button id="closeCropBtn" class="text-btn">✕</button>
+        </div>
+        <div class="crop-container">
+            <canvas id="cropCanvas"></canvas>
+            <div class="crop-overlay" id="cropOverlay">
+                <div class="crop-box" id="cropBox">
+                    <div class="crop-handle nw"></div>
+                    <div class="crop-handle ne"></div>
+                    <div class="crop-handle sw"></div>
+                    <div class="crop-handle se"></div>
+                </div>
+            </div>
+        </div>
+        <div class="crop-controls">
+            <label>Aspect Ratio:</label>
+            <select id="aspectRatioSelect">
+                <option value="free">Free</option>
+                <option value="1:1">1:1 (Square)</option>
+                <option value="4:3">4:3</option>
+                <option value="16:9">16:9</option>
+                <option value="3:2">3:2</option>
+            </select>
+            <button id="applyCropBtn" class="btn btn-primary">Apply Crop</button>
+            <button id="cancelCropBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
 
 <div id="toast">Notification</div>
 
