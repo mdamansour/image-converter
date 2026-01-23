@@ -23,7 +23,7 @@
         <header>
             <div class="badge">Batch Mode Active</div>
             <h1>Image Converter</h1>
-            <p class="subtitle">Convert multiple images at once. Data never leaves your device.</p>
+            <p class="subtitle">Convert hundreds of images to any format. Fast, private, and 100% free.</p>
         </header>
 
         <div id="dropZone" class="drop-zone">
@@ -66,52 +66,9 @@
                 </div>
 
                 <div class="control-group full-width">
-                    <label>Image Editing</label>
-                    <div class="edit-controls">
-                        <div class="edit-group">
-                            <span class="edit-label">Rotate:</span>
-                            <button type="button" class="edit-btn" id="rotate90Btn" title="Rotate 90° clockwise">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                                </svg>
-                                90°
-                            </button>
-                            <button type="button" class="edit-btn" id="rotate180Btn" title="Rotate 180°">180°</button>
-                            <button type="button" class="edit-btn" id="rotate270Btn" title="Rotate 270° (90° counter-clockwise)">270°</button>
-                        </div>
-                        <div class="edit-group">
-                            <span class="edit-label">Flip:</span>
-                            <button type="button" class="edit-btn" id="flipHBtn" title="Flip horizontal">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 2v20M6 6l-4 6 4 6M18 6l4 6-4 6"/>
-                                </svg>
-                                H
-                            </button>
-                            <button type="button" class="edit-btn" id="flipVBtn" title="Flip vertical">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M2 12h20M6 6l6-4 6 4M6 18l6 4 6-4"/>
-                                </svg>
-                                V
-                            </button>
-                        </div>
-                        <div class="edit-group">
-                            <span class="edit-label">Crop:</span>
-                            <button type="button" class="edit-btn" id="cropBtn" title="Crop image">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/>
-                                    <path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/>
-                                </svg>
-                                Crop
-                            </button>
-                        </div>
-                    </div>
-                    <p class="hint-text">Edits apply to all images in batch</p>
-                </div>
-
-                <div class="control-group full-width">
                     <div class="checkbox-row">
                         <input type="checkbox" id="resizeCheck">
-                        <label for="resizeCheck">Resize All (Fixed Width/Height)</label>
+                        <label for="resizeCheck">Resize All Images to Same Dimensions</label>
                     </div>
                     <div id="resizeControls" class="resize-inputs disabled">
                         <div class="input-wrap">
@@ -130,7 +87,7 @@
                             <input type="number" id="heightInput" placeholder="Auto">
                         </div>
                     </div>
-                    <p style="font-size: 0.75rem; color: #6b7280; margin-top: 5px;">Click lock to maintain aspect ratio automatically.</p>
+                    <p class="hint-text">Useful for creating uniform thumbnails or profile pictures. Lock maintains aspect ratio.</p>
                 </div>
             </div>
 
@@ -139,41 +96,10 @@
                 <button id="clearQueueBtn" class="text-btn">Clear All</button>
             </div>
             <div id="fileList" class="file-list">
-                </div>
-
-            <div id="previewPanel" class="preview-panel hidden">
-                <div class="preview-header">
-                    <h4>Preview</h4>
-                    <button id="closePreviewBtn" class="text-btn">✕ Close</button>
-                </div>
-                <div class="preview-content">
-                    <div class="preview-section">
-                        <span class="preview-label">Original</span>
-                        <div class="preview-image-container">
-                            <img id="previewOriginal" alt="Original">
-                        </div>
-                        <span class="preview-info" id="originalInfo"></span>
-                    </div>
-                    <div class="preview-divider">→</div>
-                    <div class="preview-section">
-                        <span class="preview-label">Converted</span>
-                        <div class="preview-image-container">
-                            <img id="previewConverted" alt="Converted">
-                        </div>
-                        <span class="preview-info" id="convertedInfo"></span>
-                    </div>
-                </div>
             </div>
 
             <div class="action-buttons">
                 <button id="addMoreBtn" class="btn btn-secondary">Add More</button>
-                <button id="previewBtn" class="btn btn-secondary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                    Preview
-                </button>
                 <button id="convertBtn" class="btn btn-primary">
                     <span>Convert All & Download ZIP</span>
                 </button>
@@ -208,70 +134,6 @@
         </div>
     </section>
 </main>
-
-<div id="cropModal" class="modal hidden">
-    <div class="modal-content crop-modal-content">
-        <div class="modal-header">
-            <h3>✂️ Crop Images</h3>
-            <button id="closeCropBtn" class="close-modal-btn">✕</button>
-        </div>
-        <div class="crop-info-banner">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <span>Drag to move • Resize from corners • Crop will apply to all images in batch</span>
-        </div>
-        <div class="crop-container" id="cropContainer">
-            <img id="cropPreviewImg" alt="Crop preview">
-            <div class="crop-overlay" id="cropOverlay">
-                <div class="crop-box" id="cropBox">
-                    <div class="crop-handle nw"></div>
-                    <div class="crop-handle ne"></div>
-                    <div class="crop-handle sw"></div>
-                    <div class="crop-handle se"></div>
-                    <div class="crop-handle n"></div>
-                    <div class="crop-handle s"></div>
-                    <div class="crop-handle e"></div>
-                    <div class="crop-handle w"></div>
-                    <div class="crop-dimension-label">
-                        <span id="cropDimensions">800 × 600</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="crop-controls">
-            <div class="crop-presets">
-                <label>Aspect Ratio:</label>
-                <div class="preset-buttons">
-                    <button class="preset-btn active" data-ratio="free">Free</button>
-                    <button class="preset-btn" data-ratio="1:1">1:1</button>
-                    <button class="preset-btn" data-ratio="4:3">4:3</button>
-                    <button class="preset-btn" data-ratio="16:9">16:9</button>
-                    <button class="preset-btn" data-ratio="3:2">3:2</button>
-                    <button class="preset-btn" data-ratio="2:3">2:3</button>
-                </div>
-            </div>
-            <div class="crop-actions">
-                <button id="resetCropBtn" class="btn btn-secondary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                        <path d="M3 3v5h5"></path>
-                    </svg>
-                    Reset
-                </button>
-                <button id="cancelCropBtn" class="btn btn-secondary">Cancel</button>
-                <button id="applyCropBtn" class="btn btn-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    Apply Crop
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <div id="toast">Notification</div>
 

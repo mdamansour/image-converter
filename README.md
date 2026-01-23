@@ -1,22 +1,27 @@
 # Image Converter - Professional Edition 🎨
 
-A modern, client-side image converter with advanced features and professional architecture.
+A modern, client-side batch image converter focused on what users actually need: fast format conversion with quality control.
 
 > 📚 **New to this project?** Start with [DOCS_INDEX.md](DOCS_INDEX.md) for guided documentation navigation.
 
 ## ✨ Features
 
-- 🔄 **Batch Conversion** - Convert multiple images at once
+- 🔄 **Batch Conversion** - Convert hundreds of images at once
 - 🎨 **Multiple Formats** - JPG, PNG, WEBP, GIF, BMP, TIFF, SVG, ICO, HEIC
-- ✂️ **Image Editing** - Rotate, flip, crop with aspect ratio presets
-- 📐 **Smart Resize** - With aspect ratio lock
 - 💾 **Quality Control** - Adjustable compression for lossy formats
+- 📐 **Optional Resize** - Create uniform thumbnails or profile pictures
 - 🔒 **100% Private** - All processing happens in your browser
 - 📦 **ZIP Download** - Automatic ZIP for batch conversions
 - 🎯 **Drag & Drop** - Easy file upload and reordering
 - 💨 **Lightning Fast** - No server uploads, instant processing
 - 📱 **PWA Ready** - Install as a desktop/mobile app
 - 🌐 **Offline Support** - Works without internet
+
+## 🎯 Core Value
+
+**Convert images to any format. That's it. Done right.**
+
+Unlike bloated editors, this tool focuses on the ONE thing users need most: converting image formats quickly and privately. No unnecessary features, no confusion, just smooth batch conversion.
 
 ## 🏗️ Architecture
 

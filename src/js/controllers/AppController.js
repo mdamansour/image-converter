@@ -12,7 +12,6 @@ import { StorageService } from '../services/StorageService.js';
 import { DownloadService } from '../services/DownloadService.js';
 import { Toast } from '../ui/Toast.js';
 import { FileQueueUI } from '../ui/FileQueueUI.js';
-import { CropModal } from '../ui/CropModal.js';
 
 export class AppController {
     constructor() {
@@ -52,17 +51,7 @@ export class AppController {
             addMoreBtn: document.getElementById('addMoreBtn'),
             clearQueueBtn: document.getElementById('clearQueueBtn'),
             
-            rotate90Btn: document.getElementById('rotate90Btn'),
-            rotate180Btn: document.getElementById('rotate180Btn'),
-            rotate270Btn: document.getElementById('rotate270Btn'),
-            flipHBtn: document.getElementById('flipHBtn'),
-            flipVBtn: document.getElementById('flipVBtn'),
-            cropBtn: document.getElementById('cropBtn'),
-            previewBtn: document.getElementById('previewBtn'),
-            
-            toast: document.getElementById('toast'),
-            cropModal: document.getElementById('cropModal'),
-            previewPanel: document.getElementById('previewPanel')
+            toast: document.getElementById('toast')
         };
     }
 
@@ -72,15 +61,12 @@ export class AppController {
     initializeUI() {
         this.ui.toast = new Toast(this.dom.toast);
         this.ui.fileQueue = new FileQueueUI(this.dom.fileList, this.dom.queueCount);
-        this.ui.cropModal = new CropModal(this.dom.cropModal);
         
         // Setup component callbacks
         this.ui.fileQueue.onRemove = (id) => this.removeFile(id);
         this.ui.fileQueue.onRetry = (id) => this.retryFile(id);
         this.ui.fileQueue.onDragStart = (e) => this.handleDragStart(e);
         this.ui.fileQueue.onDrop = (e) => this.handleDrop(e);
-        
-        this.ui.cropModal.onApply = (settings) => this.applyCrop(settings);
     }
 
     /**
@@ -113,20 +99,6 @@ export class AppController {
         // Buttons
         this.dom.convertBtn.addEventListener('click', () => this.processBatch());
         this.dom.clearQueueBtn.addEventListener('click', () => this.clearQueue());
-        
-        // Edit controls
-        this.dom.rotate90Btn.addEventListener('click', () => this.rotate(90));
-        this.dom.rotate180Btn.addEventListener('click', () => this.rotate(180));
-        this.dom.rotate270Btn.addEventListener('click', () => this.rotate(270));
-        this.dom.flipHBtn.addEventListener('click', () => this.flipHorizontal());
-        this.dom.flipVBtn.addEventListener('click', () => this.flipVertical());
-        this.dom.cropBtn.addEventListener('click', () => this.openCropModal());
-        this.dom.previewBtn.addEventListener('click', () => this.showPreview());
-        
-        // Preview panel
-        document.getElementById('closePreviewBtn')?.addEventListener('click', () => {
-            this.dom.previewPanel.classList.add('hidden');
-        });
         
         // Keyboard shortcuts
         this.setupKeyboardShortcuts();
@@ -174,10 +146,6 @@ export class AppController {
                 case 'QUEUE_CLEARED':
                 case 'FILES_REORDERED':
                     this.updateQueueUI();
-                    break;
-                case 'EDIT_CHANGED':
-                case 'EDIT_RESET':
-                    this.updateEditIndicators();
                     break;
             }
         });
@@ -330,7 +298,13 @@ export class AppController {
 
         const isSingleFile = fileQueue.length === 1;
         const settings = appConfig.getAllSettings();
-        const editState = appState.getEditState();
+        // No editing features - use default empty edit state
+        const editState = {
+            rotation: 0,
+            flipHorizontal: false,
+            flipVertical: false,
+            cropSettings: null
+        };
         
         this.dom.convertBtn.disabled = true;
         
@@ -499,109 +473,6 @@ export class AppController {
             };
             reader.readAsDataURL(file);
         });
-    }
-
-    /**
-     * Rotation handler
-     */
-    rotate(degrees) {
-        const editState = appState.getEditState();
-        const newRotation = (editState.rotation + degrees) % 360;
-        appState.setRotation(newRotation);
-        this.ui.toast.show(`↻ Rotation: ${newRotation}°`);
-    }
-
-    /**
-     * Flip horizontal handler
-     */
-    flipHorizontal() {
-        const editState = appState.getEditState();
-        const newValue = !editState.flipHorizontal;
-        appState.setFlipHorizontal(newValue);
-        this.ui.toast.show((newValue ? '✅' : '❌') + ' Flip Horizontal');
-    }
-
-    /**
-     * Flip vertical handler
-     */
-    flipVertical() {
-        const editState = appState.getEditState();
-        const newValue = !editState.flipVertical;
-        appState.setFlipVertical(newValue);
-        this.ui.toast.show((newValue ? '✅' : '❌') + ' Flip Vertical');
-    }
-
-    /**
-     * Open crop modal
-     */
-    async openCropModal() {
-        const queue = appState.getFileQueue();
-        if (queue.length === 0) {
-            this.ui.toast.show('⚠️ Add images first');
-            return;
-        }
-
-        await this.ui.cropModal.open(queue[0].file);
-    }
-
-    /**
-     * Apply crop settings
-     */
-    applyCrop(settings) {
-        appState.setCropSettings(settings);
-        this.ui.toast.show(`✂️ Crop applied: ${settings.width}×${settings.height}px`);
-    }
-
-    /**
-     * Show preview
-     */
-    async showPreview() {
-        const queue = appState.getFileQueue();
-        if (queue.length === 0) {
-            this.ui.toast.show('⚠️ No files to preview');
-            return;
-        }
-
-        const firstFile = queue[0];
-        const originalImg = document.getElementById('previewOriginal');
-        const convertedImg = document.getElementById('previewConverted');
-        const originalInfo = document.getElementById('originalInfo');
-        const convertedInfo = document.getElementById('convertedInfo');
-
-        const dataUrl = await FileService.readFileAsDataURL(firstFile.file);
-        originalImg.src = dataUrl;
-        originalInfo.textContent = `${firstFile.format} - ${FileService.formatFileSize(firstFile.file.size)}`;
-
-        try {
-            const settings = appConfig.getAllSettings();
-            const editState = appState.getEditState();
-            const converted = await ConversionService.convertImage(firstFile.file, settings, editState);
-            convertedImg.src = converted;
-
-            const base64Length = converted.split(',')[1].length;
-            const sizeKB = (base64Length * 0.75 / 1024).toFixed(0);
-            const targetFormat = settings.format === 'same' ? 
-                firstFile.format : FileService.getFormatLabel(settings.format);
-            convertedInfo.textContent = `${targetFormat} - ~${sizeKB} KB`;
-        } catch (err) {
-            convertedInfo.textContent = 'Preview failed';
-        }
-
-        this.dom.previewPanel.classList.remove('hidden');
-    }
-
-    /**
-     * Update edit indicators
-     */
-    updateEditIndicators() {
-        const editState = appState.getEditState();
-        
-        this.dom.rotate90Btn.classList.toggle('active', editState.rotation === 90);
-        this.dom.rotate180Btn.classList.toggle('active', editState.rotation === 180);
-        this.dom.rotate270Btn.classList.toggle('active', editState.rotation === 270);
-        this.dom.flipHBtn.classList.toggle('active', editState.flipHorizontal);
-        this.dom.flipVBtn.classList.toggle('active', editState.flipVertical);
-        this.dom.cropBtn.classList.toggle('active', editState.cropSettings !== null);
     }
 
     /**
