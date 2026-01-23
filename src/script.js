@@ -799,16 +799,417 @@ function showPreview() {
     previewPanel.classList.remove('hidden');
 }
 
+// --- Crop Modal Variables ---
+let cropModal = null;
+let cropContainer = null;
+let cropPreviewImg = null;
+let cropBox = null;
+let cropOverlay = null;
+let cropDimensions = null;
+let currentCropRatio = 'free';
+let isDraggingCrop = false;
+let isResizingCrop = false;
+let resizeHandle = null;
+let cropStartX = 0;
+let cropStartY = 0;
+let cropBoxStartX = 0;
+let cropBoxStartY = 0;
+let cropBoxStartWidth = 0;
+let cropBoxStartHeight = 0;
+let previewImageNaturalWidth = 0;
+let previewImageNaturalHeight = 0;
+let containerRect = null;
+
 function openCropModal() {
     if (fileQueue.length === 0) {
         showToast('⚠️ Add images first');
         return;
     }
     
-    showToast('🚧 Crop feature - Basic implementation');
-    // Simplified: Set a default center crop
-    cropSettings = { x: 0, y: 0, width: 100, height: 100 };
+    // Initialize modal elements
+    cropModal = document.getElementById('cropModal');
+    cropContainer = document.getElementById('cropContainer');
+    cropPreviewImg = document.getElementById('cropPreviewImg');
+    cropBox = document.getElementById('cropBox');
+    cropOverlay = document.getElementById('cropOverlay');
+    cropDimensions = document.getElementById('cropDimensions');
+    
+    // Load first image as preview
+    const firstFile = fileQueue[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        cropPreviewImg.onload = () => {
+            previewImageNaturalWidth = cropPreviewImg.naturalWidth;
+            previewImageNaturalHeight = cropPreviewImg.naturalHeight;
+            initializeCropBox();
+        };
+        cropPreviewImg.src = e.target.result;
+    };
+    reader.readAsDataURL(firstFile.file);
+    
+    // Show modal
+    cropModal.classList.remove('hidden');
+    
+    // Setup event listeners
+    setupCropEventListeners();
+}
+
+function initializeCropBox() {
+    // Wait for image to be displayed
+    setTimeout(() => {
+        containerRect = cropContainer.getBoundingClientRect();
+        const imgRect = cropPreviewImg.getBoundingClientRect();
+        
+        // Calculate displayed image dimensions
+        const displayedWidth = imgRect.width;
+        const displayedHeight = imgRect.height;
+        const offsetX = (containerRect.width - displayedWidth) / 2;
+        const offsetY = (containerRect.height - displayedHeight) / 2;
+        
+        // Initialize crop box to 80% of image
+        const initialWidth = displayedWidth * 0.8;
+        const initialHeight = displayedHeight * 0.8;
+        const initialX = offsetX + (displayedWidth - initialWidth) / 2;
+        const initialY = offsetY + (displayedHeight - initialHeight) / 2;
+        
+        cropBox.style.left = initialX + 'px';
+        cropBox.style.top = initialY + 'px';
+        cropBox.style.width = initialWidth + 'px';
+        cropBox.style.height = initialHeight + 'px';
+        
+        updateCropDimensions();
+    }, 50);
+}
+
+function setupCropEventListeners() {
+    // Close button
+    document.getElementById('closeCropBtn').onclick = closeCropModal;
+    document.getElementById('cancelCropBtn').onclick = closeCropModal;
+    
+    // Apply button
+    document.getElementById('applyCropBtn').onclick = applyCrop;
+    
+    // Reset button
+    document.getElementById('resetCropBtn').onclick = () => {
+        initializeCropBox();
+        showToast('Crop area reset');
+    };
+    
+    // Aspect ratio presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentCropRatio = e.target.dataset.ratio;
+            
+            if (currentCropRatio !== 'free') {
+                applyAspectRatioToCropBox();
+            }
+        };
+    });
+    
+    // Dragging crop box
+    cropBox.onmousedown = (e) => {
+        if (e.target.classList.contains('crop-handle')) return;
+        isDraggingCrop = true;
+        cropStartX = e.clientX;
+        cropStartY = e.clientY;
+        cropBoxStartX = cropBox.offsetLeft;
+        cropBoxStartY = cropBox.offsetTop;
+        cropBox.style.cursor = 'grabbing';
+        e.preventDefault();
+    };
+    
+    // Resizing from handles
+    document.querySelectorAll('.crop-handle').forEach(handle => {
+        handle.onmousedown = (e) => {
+            isResizingCrop = true;
+            resizeHandle = e.target.classList[1]; // nw, ne, sw, se, n, s, e, w
+            cropStartX = e.clientX;
+            cropStartY = e.clientY;
+            cropBoxStartX = cropBox.offsetLeft;
+            cropBoxStartY = cropBox.offsetTop;
+            cropBoxStartWidth = cropBox.offsetWidth;
+            cropBoxStartHeight = cropBox.offsetHeight;
+            e.stopPropagation();
+            e.preventDefault();
+        };
+    });
+    
+    // Mouse move
+    document.onmousemove = (e) => {
+        if (isDraggingCrop) {
+            handleCropDrag(e);
+        } else if (isResizingCrop) {
+            handleCropResize(e);
+        }
+    };
+    
+    // Mouse up
+    document.onmouseup = () => {
+        isDraggingCrop = false;
+        isResizingCrop = false;
+        resizeHandle = null;
+        cropBox.style.cursor = 'move';
+    };
+}
+
+function handleCropDrag(e) {
+    const deltaX = e.clientX - cropStartX;
+    const deltaY = e.clientY - cropStartY;
+    
+    // Get current dimensions
+    const cropWidth = cropBox.offsetWidth;
+    const cropHeight = cropBox.offsetHeight;
+    
+    // Get image boundaries
+    const imgRect = cropPreviewImg.getBoundingClientRect();
+    const containerRect = cropContainer.getBoundingClientRect();
+    const offsetX = imgRect.left - containerRect.left;
+    const offsetY = imgRect.top - containerRect.top;
+    const maxX = offsetX + imgRect.width;
+    const maxY = offsetY + imgRect.height;
+    
+    // Calculate new position
+    let newX = cropBoxStartX + deltaX;
+    let newY = cropBoxStartY + deltaY;
+    
+    // Strict boundary constraints
+    if (newX < offsetX) newX = offsetX;
+    if (newY < offsetY) newY = offsetY;
+    if (newX + cropWidth > maxX) newX = maxX - cropWidth;
+    if (newY + cropHeight > maxY) newY = maxY - cropHeight;
+    
+    cropBox.style.left = newX + 'px';
+    cropBox.style.top = newY + 'px';
+    
+    updateCropDimensions();
+}
+
+function handleCropResize(e) {
+    const deltaX = e.clientX - cropStartX;
+    const deltaY = e.clientY - cropStartY;
+    
+    let newX = cropBoxStartX;
+    let newY = cropBoxStartY;
+    let newWidth = cropBoxStartWidth;
+    let newHeight = cropBoxStartHeight;
+    
+    // Get image boundaries
+    const imgRect = cropPreviewImg.getBoundingClientRect();
+    const containerRect = cropContainer.getBoundingClientRect();
+    const offsetX = imgRect.left - containerRect.left;
+    const offsetY = imgRect.top - containerRect.top;
+    const maxX = offsetX + imgRect.width;
+    const maxY = offsetY + imgRect.height;
+    
+    const minSize = 50;
+    
+    // Handle different resize directions with proper bounds
+    if (resizeHandle.includes('e')) {
+        const maxWidth = maxX - cropBoxStartX;
+        newWidth = Math.max(minSize, Math.min(cropBoxStartWidth + deltaX, maxWidth));
+    }
+    if (resizeHandle.includes('w')) {
+        const maxDelta = cropBoxStartX - offsetX;
+        const minDelta = cropBoxStartWidth - minSize;
+        const constrainedDelta = Math.max(-minDelta, Math.min(deltaX, maxDelta));
+        newWidth = cropBoxStartWidth - constrainedDelta;
+        newX = cropBoxStartX + constrainedDelta;
+    }
+    if (resizeHandle.includes('s')) {
+        const maxHeight = maxY - cropBoxStartY;
+        newHeight = Math.max(minSize, Math.min(cropBoxStartHeight + deltaY, maxHeight));
+    }
+    if (resizeHandle.includes('n')) {
+        const maxDelta = cropBoxStartY - offsetY;
+        const minDelta = cropBoxStartHeight - minSize;
+        const constrainedDelta = Math.max(-minDelta, Math.min(deltaY, maxDelta));
+        newHeight = cropBoxStartHeight - constrainedDelta;
+        newY = cropBoxStartY + constrainedDelta;
+    }
+    
+    // Apply aspect ratio constraint
+    if (currentCropRatio !== 'free') {
+        const ratio = getAspectRatioValue(currentCropRatio);
+        
+        if (resizeHandle === 'e' || resizeHandle === 'w') {
+            // Horizontal resize - adjust height
+            const desiredHeight = newWidth / ratio;
+            const availableHeight = maxY - newY;
+            if (desiredHeight <= availableHeight) {
+                newHeight = desiredHeight;
+            } else {
+                // Height constrained, adjust width instead
+                newHeight = availableHeight;
+                newWidth = newHeight * ratio;
+                if (resizeHandle === 'w') {
+                    newX = cropBoxStartX + cropBoxStartWidth - newWidth;
+                }
+            }
+        } else if (resizeHandle === 'n' || resizeHandle === 's') {
+            // Vertical resize - adjust width
+            const desiredWidth = newHeight * ratio;
+            const availableWidth = maxX - newX;
+            if (desiredWidth <= availableWidth) {
+                newWidth = desiredWidth;
+            } else {
+                // Width constrained, adjust height instead
+                newWidth = availableWidth;
+                newHeight = newWidth / ratio;
+                if (resizeHandle === 'n') {
+                    newY = cropBoxStartY + cropBoxStartHeight - newHeight;
+                }
+            }
+        } else {
+            // Corner resize - maintain ratio, prefer the dimension being dragged
+            const widthBasedHeight = newWidth / ratio;
+            const heightBasedWidth = newHeight * ratio;
+            
+            // Check which dimension has more room
+            const heightRoom = maxY - newY;
+            const widthRoom = maxX - newX;
+            
+            if (widthBasedHeight <= heightRoom && newWidth <= widthRoom) {
+                newHeight = widthBasedHeight;
+            } else if (heightBasedWidth <= widthRoom && newHeight <= heightRoom) {
+                newWidth = heightBasedWidth;
+            } else {
+                // Both constrained - use smaller scale
+                const scaleByWidth = widthRoom / newWidth;
+                const scaleByHeight = heightRoom / newHeight;
+                if (scaleByWidth < scaleByHeight) {
+                    newWidth = widthRoom;
+                    newHeight = newWidth / ratio;
+                } else {
+                    newHeight = heightRoom;
+                    newWidth = newHeight * ratio;
+                }
+            }
+            
+            // Readjust position for NW/W/N handles
+            if (resizeHandle.includes('w')) {
+                newX = cropBoxStartX + cropBoxStartWidth - newWidth;
+            }
+            if (resizeHandle.includes('n')) {
+                newY = cropBoxStartY + cropBoxStartHeight - newHeight;
+            }
+        }
+    }
+    
+    // Final safety bounds check
+    if (newX < offsetX) {
+        const overflow = offsetX - newX;
+        newX = offsetX;
+        newWidth = Math.max(minSize, newWidth - overflow);
+    }
+    if (newY < offsetY) {
+        const overflow = offsetY - newY;
+        newY = offsetY;
+        newHeight = Math.max(minSize, newHeight - overflow);
+    }
+    if (newX + newWidth > maxX) {
+        newWidth = Math.max(minSize, maxX - newX);
+    }
+    if (newY + newHeight > maxY) {
+        newHeight = Math.max(minSize, maxY - newY);
+    }
+    
+    // Ensure minimum size is maintained
+    if (newWidth < minSize) newWidth = minSize;
+    if (newHeight < minSize) newHeight = minSize;
+    
+    cropBox.style.left = newX + 'px';
+    cropBox.style.top = newY + 'px';
+    cropBox.style.width = newWidth + 'px';
+    cropBox.style.height = newHeight + 'px';
+    
+    updateCropDimensions();
+}
+
+function getAspectRatioValue(ratio) {
+    const ratios = {
+        '1:1': 1,
+        '4:3': 4/3,
+        '16:9': 16/9,
+        '3:2': 3/2,
+        '2:3': 2/3
+    };
+    return ratios[ratio] || null;
+}
+
+function applyAspectRatioToCropBox() {
+    const ratio = getAspectRatioValue(currentCropRatio);
+    if (!ratio) return;
+    
+    const currentWidth = cropBox.offsetWidth;
+    const newHeight = currentWidth / ratio;
+    
+    cropBox.style.height = newHeight + 'px';
+    
+    // Ensure still within bounds
+    const imgRect = cropPreviewImg.getBoundingClientRect();
+    containerRect = cropContainer.getBoundingClientRect();
+    const offsetY = imgRect.top - containerRect.top;
+    const maxY = offsetY + imgRect.height;
+    
+    if (cropBox.offsetTop + newHeight > maxY) {
+        cropBox.style.top = (maxY - newHeight) + 'px';
+    }
+    
+    updateCropDimensions();
+}
+
+function updateCropDimensions() {
+    // Calculate actual pixel dimensions on original image
+    const imgRect = cropPreviewImg.getBoundingClientRect();
+    containerRect = cropContainer.getBoundingClientRect();
+    
+    const scaleX = previewImageNaturalWidth / imgRect.width;
+    const scaleY = previewImageNaturalHeight / imgRect.height;
+    
+    const actualWidth = Math.round(cropBox.offsetWidth * scaleX);
+    const actualHeight = Math.round(cropBox.offsetHeight * scaleY);
+    
+    cropDimensions.textContent = `${actualWidth} × ${actualHeight}`;
+}
+
+function applyCrop() {
+    // Calculate crop settings relative to original image
+    const imgRect = cropPreviewImg.getBoundingClientRect();
+    containerRect = cropContainer.getBoundingClientRect();
+    const offsetX = imgRect.left - containerRect.left;
+    const offsetY = imgRect.top - containerRect.top;
+    
+    const scaleX = previewImageNaturalWidth / imgRect.width;
+    const scaleY = previewImageNaturalHeight / imgRect.height;
+    
+    const relativeX = cropBox.offsetLeft - offsetX;
+    const relativeY = cropBox.offsetTop - offsetY;
+    
+    cropSettings = {
+        x: Math.round(relativeX * scaleX),
+        y: Math.round(relativeY * scaleY),
+        width: Math.round(cropBox.offsetWidth * scaleX),
+        height: Math.round(cropBox.offsetHeight * scaleY)
+    };
+    
     updateEditIndicator();
+    closeCropModal();
+    showToast(`✂️ Crop applied: ${cropSettings.width}×${cropSettings.height}px`);
+}
+
+function closeCropModal() {
+    cropModal.classList.add('hidden');
+    
+    // Reset for next time
+    currentCropRatio = 'free';
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.preset-btn[data-ratio="free"]').classList.add('active');
+    
+    // Clean up event listeners
+    document.onmousemove = null;
+    document.onmouseup = null;
 }
 
 function saveSettings() {
