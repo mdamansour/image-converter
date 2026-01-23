@@ -114,9 +114,49 @@ input[type="range"] { width: 100%; cursor: pointer; }
 
 /* Resize Section */
 .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.resize-inputs { display: flex; gap: 10px; transition: opacity 0.2s; }
+.resize-inputs { 
+    display: flex; 
+    gap: 8px; 
+    align-items: flex-end;
+    transition: opacity 0.2s; 
+}
 .resize-inputs.disabled { opacity: 0.4; pointer-events: none; }
 .input-wrap { flex: 1; }
+
+.aspect-lock-btn {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--text-sub);
+    transition: all 0.2s;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+}
+
+.aspect-lock-btn:hover {
+    background: #f9fafb;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.aspect-lock-btn.locked {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.aspect-lock-btn.locked .unlock-only {
+    display: none;
+}
+
+.aspect-lock-btn:not(.locked) .unlock-only {
+    display: block;
+}
 
 /* --- File Queue List --- */
 .queue-header {
@@ -189,6 +229,62 @@ input[type="range"] { width: 100%; cursor: pointer; }
     font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: #e5e7eb; color: var(--text-sub);
 }
 .status-indicator.done { background: #d1fae5; color: #065f46; }
+.status-indicator.error { background: #fee2e2; color: #dc2626; }
+
+.file-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.progress-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--primary);
+    min-width: 35px;
+    text-align: right;
+}
+
+.retry-btn {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    color: #92400e;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+    margin-left: 4px;
+}
+
+.retry-btn:hover {
+    background: #fbbf24;
+    color: #78350f;
+    transform: rotate(180deg);
+}
+
+.size-estimate {
+    color: var(--success);
+    font-weight: 600;
+    font-size: 0.7rem;
+}
 
 .remove-btn {
     background: none;

@@ -16,6 +16,10 @@ const resizeCheck = document.getElementById('resizeCheck');
 const resizeControls = document.getElementById('resizeControls');
 const widthInput = document.getElementById('widthInput');
 const heightInput = document.getElementById('heightInput');
+const aspectLockBtn = document.getElementById('aspectLockBtn');
+
+let aspectRatioLocked = false;
+let currentAspectRatio = null;
 
 // Buttons & Toast
 const convertBtn = document.getElementById('convertBtn');
@@ -49,6 +53,7 @@ fileInput.addEventListener('change', (e) => {
 // 2. Settings Logic
 qualityRange.addEventListener('input', (e) => {
     qualityValue.textContent = Math.round(e.target.value * 100) + '%';
+    saveSettings();
 });
 
 formatSelect.addEventListener('change', (e) => {
@@ -59,6 +64,7 @@ formatSelect.addEventListener('change', (e) => {
         qualityGroup.style.opacity = '1';
         qualityRange.disabled = false;
     }
+    saveSettings();
 });
 
 resizeCheck.addEventListener('change', (e) => {
@@ -67,7 +73,49 @@ resizeCheck.addEventListener('change', (e) => {
     } else {
         resizeControls.classList.add('disabled');
     }
+    saveSettings();
 });
+
+widthInput.addEventListener('change', saveSettings);
+heightInput.addEventListener('change', saveSettings);
+
+// Aspect ratio lock functionality
+if (aspectLockBtn) {
+    aspectLockBtn.addEventListener('click', () => {
+        aspectRatioLocked = !aspectRatioLocked;
+        aspectLockBtn.classList.toggle('locked');
+        
+        if (aspectRatioLocked && fileQueue.length > 0) {
+            // Calculate aspect ratio from first image
+            const firstItem = fileQueue[0];
+            const img = new Image();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.onload = () => {
+                    currentAspectRatio = img.width / img.height;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(firstItem.file);
+        }
+        
+        saveSettings();
+    });
+    
+    widthInput.addEventListener('input', (e) => {
+        if (aspectRatioLocked && currentAspectRatio && e.target.value) {
+            const w = parseInt(e.target.value);
+            heightInput.value = Math.round(w / currentAspectRatio);
+        }
+    });
+    
+    heightInput.addEventListener('input', (e) => {
+        if (aspectRatioLocked && currentAspectRatio && e.target.value) {
+            const h = parseInt(e.target.value);
+            widthInput.value = Math.round(h * currentAspectRatio);
+        }
+    });
+}
 
 // 3. Queue Management
 clearQueueBtn.addEventListener('click', () => {
@@ -92,10 +140,14 @@ function handleFiles(files) {
             const item = {
                 file: file,
                 id: Math.random().toString(36).substr(2, 9),
-                status: 'pending', // pending, processing, done
+                status: 'pending', // pending, processing, done, error
                 thumbnail: null,
-                format: getFormatName(file.type)
+                format: getFormatName(file.type),
+                progress: 0,
+                error: null,
+                estimatedSize: null
             };
+            item.estimatedSize = estimateOutputSize(file);
             fileQueue.push(item);
             generateThumbnail(file, item);
             newFilesAdded = true;
@@ -161,6 +213,33 @@ function updateQueueUI() {
             ? `<img src="${item.thumbnail}" class="file-thumbnail" alt="thumbnail">` 
             : `<div class="file-thumbnail-placeholder">📄</div>`;
         
+        let statusHTML = '';
+        if (item.status === 'processing') {
+            statusHTML = `
+                <div class="file-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${item.progress}%"></div>
+                    </div>
+                    <div class="progress-text">${item.progress}%</div>
+                </div>
+            `;
+        } else if (item.status === 'error') {
+            statusHTML = `
+                <div class="status-indicator error">${item.error || 'ERROR'}</div>
+                <button class="retry-btn" data-id="${item.id}" title="Retry conversion">↻</button>
+            `;
+        } else {
+            statusHTML = `
+                <div class="status-indicator ${item.status === 'done' ? 'done' : ''}">
+                    ${item.status.toUpperCase()}
+                </div>
+            `;
+        }
+        
+        const sizeEstimate = item.estimatedSize ? `
+            <span class="size-estimate" title="Estimated output size">→ ~${(item.estimatedSize / 1024 / 1024).toFixed(2)} MB</span>
+        ` : '';
+        
         div.innerHTML = `
             ${thumbnailHTML}
             <div class="file-info">
@@ -168,11 +247,10 @@ function updateQueueUI() {
                 <div class="file-meta">
                     <span class="format-badge">${item.format}</span>
                     ${(item.file.size / 1024 / 1024).toFixed(2)} MB
+                    ${sizeEstimate}
                 </div>
             </div>
-            <div class="status-indicator ${item.status === 'done' ? 'done' : ''}">
-                ${item.status.toUpperCase()}
-            </div>
+            ${statusHTML}
             <button class="remove-btn" data-id="${item.id}" title="Remove file">✕</button>
         `;
         fileList.appendChild(div);
@@ -183,6 +261,15 @@ function updateQueueUI() {
         btn.addEventListener('click', (e) => {
             const id = e.target.dataset.id;
             removeFile(id);
+        });
+    });
+    
+    // Add event listeners to retry buttons
+    document.querySelectorAll('.retry-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = e.target.dataset.id;
+            await retryFile(id);
         });
     });
 
@@ -221,30 +308,55 @@ async function processBatch() {
     try {
         for (let i = 0; i < fileQueue.length; i++) {
             const item = fileQueue[i];
+            
+            // Skip already processed or errored files
+            if (item.status === 'done' || item.status === 'error') {
+                if (item.status === 'done') processedCount++;
+                continue;
+            }
+            
             item.status = 'processing';
+            item.progress = 0;
             
             // Update progress
-            convertBtn.textContent = `Processing ${i + 1}/${totalFiles}...`;
+            convertBtn.textContent = `Processing ${processedCount + 1}/${totalFiles}...`;
             updateQueueUI();
 
-            // Convert Image
-            const convertedData = await convertSingleImage(item.file);
-            
-            const ext = getExtension(formatSelect.value);
-            const filename = item.file.name.replace(/\.[^/.]+$/, "") + `_converted.${ext}`;
-            
-            if (isSingleFile) {
-                // Store for direct download
-                singleFileData = convertedData;
-                singleFileName = filename;
-            } else {
-                // Add to ZIP
-                const base64Data = convertedData.split(',')[1];
-                zip.file(filename, base64Data, {base64: true});
+            try {
+                // Simulate progress updates
+                item.progress = 30;
+                updateQueueUI();
+                
+                // Convert Image
+                const convertedData = await convertSingleImage(item.file);
+                
+                item.progress = 70;
+                updateQueueUI();
+                
+                const ext = getExtension(formatSelect.value);
+                const filename = item.file.name.replace(/\.[^/.]+$/, "") + `_converted.${ext}`;
+                
+                if (isSingleFile) {
+                    // Store for direct download
+                    singleFileData = convertedData;
+                    singleFileName = filename;
+                } else {
+                    // Add to ZIP
+                    const base64Data = convertedData.split(',')[1];
+                    zip.file(filename, base64Data, {base64: true});
+                }
+                
+                item.progress = 100;
+                item.status = 'done';
+                processedCount++;
+            } catch (error) {
+                console.error(`Error processing ${item.file.name}:`, error);
+                item.status = 'error';
+                item.error = 'Failed';
+                item.progress = 0;
             }
-
-            item.status = 'done';
-            processedCount++;
+            
+            updateQueueUI();
         }
 
         updateQueueUI();
@@ -353,9 +465,106 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
+function saveSettings() {
+    const settings = {
+        format: formatSelect.value,
+        quality: qualityRange.value,
+        resize: resizeCheck.checked,
+        width: widthInput.value,
+        height: heightInput.value,
+        aspectLock: aspectRatioLocked
+    };
+    localStorage.setItem('imageConverterSettings', JSON.stringify(settings));
+}
+
+function loadSettings() {
+    try {
+        const saved = localStorage.getItem('imageConverterSettings');
+        if (saved) {
+            const settings = JSON.parse(saved);
+            formatSelect.value = settings.format || 'image/jpeg';
+            qualityRange.value = settings.quality || 0.9;
+            qualityValue.textContent = Math.round(qualityRange.value * 100) + '%';
+            resizeCheck.checked = settings.resize || false;
+            widthInput.value = settings.width || '';
+            heightInput.value = settings.height || '';
+            aspectRatioLocked = settings.aspectLock || false;
+            
+            if (resizeCheck.checked) {
+                resizeControls.classList.remove('disabled');
+            }
+            
+            if (aspectRatioLocked && aspectLockBtn) {
+                aspectLockBtn.classList.add('locked');
+            }
+            
+            // Trigger format change to update UI
+            formatSelect.dispatchEvent(new Event('change'));
+        }
+    } catch (e) {
+        console.error('Failed to load settings:', e);
+    }
+}
+
+function retryFile(id) {
+    const item = fileQueue.find(f => f.id === id);
+    if (item) {
+        item.status = 'pending';
+        item.error = null;
+        item.progress = 0;
+        updateQueueUI();
+        showToast('File reset - click Convert to retry');
+    }
+}
+
+function estimateOutputSize(file) {
+    // Rough estimation based on format and quality
+    const format = formatSelect.value;
+    const quality = parseFloat(qualityRange.value);
+    let estimate = file.size;
+    
+    if (format === 'image/jpeg') {
+        estimate = file.size * quality * 0.6;
+    } else if (format === 'image/webp') {
+        estimate = file.size * quality * 0.5;
+    } else if (format === 'image/png') {
+        estimate = file.size * 1.2; // PNG can be larger
+    } else if (format === 'image/bmp') {
+        estimate = file.size * 3; // BMP is much larger
+    }
+    
+    // Adjust for resize
+    if (resizeCheck.checked) {
+        const w = parseInt(widthInput.value);
+        const h = parseInt(heightInput.value);
+        if (w || h) {
+            estimate *= 0.7; // Assume smaller size when resizing
+        }
+    }
+    
+    return estimate;
+}
+
 // Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js');
     });
+}
+
+// Load saved settings on page load
+loadSettings();
+
+// Update size estimates when settings change
+formatSelect.addEventListener('change', updateAllEstimates);
+qualityRange.addEventListener('input', updateAllEstimates);
+resizeCheck.addEventListener('change', updateAllEstimates);
+widthInput.addEventListener('input', updateAllEstimates);
+heightInput.addEventListener('input', updateAllEstimates);
+
+function updateAllEstimates() {
+    fileQueue.forEach(item => {
+        item.estimatedSize = estimateOutputSize(item.file);
+    });
+    updateQueueUI();
 }

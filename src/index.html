@@ -68,12 +68,19 @@
                             <label>Width (px)</label>
                             <input type="number" id="widthInput" placeholder="Auto">
                         </div>
+                        <button id="aspectLockBtn" class="aspect-lock-btn" title="Lock aspect ratio">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect>
+                                <path d="M12 11V7a3 3 0 0 1 6 0v4"></path>
+                                <path class="unlock-only" d="M6 11V7a3 3 0 0 1 3-3"></path>
+                            </svg>
+                        </button>
                         <div class="input-wrap">
                             <label>Height (px)</label>
                             <input type="number" id="heightInput" placeholder="Auto">
                         </div>
                     </div>
-                    <p style="font-size: 0.75rem; color: #6b7280; margin-top: 5px;">Leave one empty to maintain aspect ratio.</p>
+                    <p style="font-size: 0.75rem; color: #6b7280; margin-top: 5px;">Click lock to maintain aspect ratio automatically.</p>
                 </div>
             </div>
 
