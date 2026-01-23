@@ -1,10 +1,21 @@
-const CACHE_NAME = "image-converter-v3";
+const CACHE_NAME = "image-converter-v4";
 const ASSETS_TO_CACHE = [
     "./",
     "./index.html",
     "./style.css",
-    "./script.js",
     "./manifest.json",
+    "./js/main.js",
+    "./js/core/constants.js",
+    "./js/core/state.js",
+    "./js/core/config.js",
+    "./js/services/FileService.js",
+    "./js/services/ConversionService.js",
+    "./js/services/StorageService.js",
+    "./js/services/DownloadService.js",
+    "./js/ui/Toast.js",
+    "./js/ui/FileQueueUI.js",
+    "./js/ui/CropModal.js",
+    "./js/controllers/AppController.js",
     "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
     "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"
 ];
