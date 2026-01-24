@@ -1,0 +1,50 @@
+# Internal documentation and planning
+.internal/
+
+# Development environment
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archives and backups
+Archive/
+*.backup
+*.bak
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+.cache/
+
+# Build outputs (if any)
+dist/
+build/
+
+# Dependencies (if you add them later)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+
+# Editor directories
+.vscode/
+.idea/
+
+# Python (for local server)
+__pycache__/
+*.py[cod]
+venv/
+.Python
