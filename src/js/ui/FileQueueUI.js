@@ -109,11 +109,26 @@ export class FileQueueUI {
      * Get size estimate HTML
      */
     getSizeEstimateHTML(item) {
-        if (item.estimatedSize) {
+        // Show actual size if conversion is done
+        if (item.status === FILE_STATUS.DONE && item.actualSize) {
+            const originalSize = item.file.size;
+            const actualSize = item.actualSize;
+            const percentChange = ((actualSize - originalSize) / originalSize * 100).toFixed(1);
+            const sign = percentChange > 0 ? '+' : '';
+            const color = percentChange > 0 ? '#ef4444' : '#10b981'; // red if larger, green if smaller
+            
+            return `<span class="size-actual" style="color: ${color}" title="Actual output size">
+                → ${FileService.formatFileSize(actualSize)} (${sign}${percentChange}%)
+            </span>`;
+        }
+        
+        // Show estimate for pending files
+        if (item.estimatedSize && item.status === FILE_STATUS.PENDING) {
             return `<span class="size-estimate" title="Estimated output size">
                 → ~${FileService.formatFileSize(item.estimatedSize)}
             </span>`;
         }
+        
         return '';
     }
 

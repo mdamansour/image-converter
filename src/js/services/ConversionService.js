@@ -125,7 +125,16 @@ export class ConversionService {
                                    flipHorizontal, flipVertical, sourceX, sourceY, 
                                    sourceWidth, sourceHeight);
 
-        return canvas.toDataURL(targetFormat, settings.quality);
+        // Quality parameter only works with lossy formats (JPEG, WEBP)
+        const supportsQuality = targetFormat === IMAGE_FORMATS.JPEG || 
+                               targetFormat === IMAGE_FORMATS.WEBP;
+        
+        if (supportsQuality) {
+            return canvas.toDataURL(targetFormat, settings.quality);
+        } else {
+            // PNG, BMP, GIF, TIFF are lossless - quality parameter is ignored
+            return canvas.toDataURL(targetFormat);
+        }
     }
 
     /**
@@ -233,35 +242,52 @@ export class ConversionService {
 
     /**
      * Estimate output file size
+     * Note: This is a rough estimate. Actual size depends on image complexity and content.
      */
     static estimateOutputSize(file, settings) {
-        const format = settings.format;
+        const format = settings.format === 'same' ? file.type : settings.format;
         const quality = settings.quality;
         let estimate = file.size;
 
+        // Format-based estimation
         if (format === IMAGE_FORMATS.JPEG) {
-            estimate = file.size * quality * 0.6;
+            // JPEG with quality compression
+            estimate = file.size * quality * 0.7;
         } else if (format === IMAGE_FORMATS.WEBP) {
-            estimate = file.size * quality * 0.5;
+            // WEBP is more efficient than JPEG
+            estimate = file.size * quality * 0.6;
         } else if (format === IMAGE_FORMATS.PNG) {
-            estimate = file.size * 1.2;
+            // PNG is lossless - size depends on complexity
+            // Converting to PNG often increases size for photos
+            if (file.type === IMAGE_FORMATS.JPEG) {
+                estimate = file.size * 1.8; // JPEG to PNG typically increases size
+            } else if (file.type === IMAGE_FORMATS.PNG) {
+                estimate = file.size * 0.95; // PNG to PNG, slight recompression
+            } else {
+                estimate = file.size * 1.5;
+            }
         } else if (format === IMAGE_FORMATS.BMP) {
-            estimate = file.size * 3;
+            // BMP is uncompressed - very large
+            estimate = file.size * 4;
         } else if (format === IMAGE_FORMATS.GIF) {
-            estimate = file.size * 0.9;
+            // GIF with limited palette
+            estimate = file.size * 0.8;
         } else if (format === IMAGE_FORMATS.TIFF) {
-            estimate = file.size * 2;
+            // TIFF can be compressed or uncompressed
+            estimate = file.size * 1.5;
         } else if (format === IMAGE_FORMATS.SVG) {
-            estimate = file.size * 0.3;
+            // SVG wraps the raster image, adds XML overhead
+            estimate = file.size * 1.1;
         } else if (format === IMAGE_FORMATS.ICO) {
+            // ICO is 32x32 PNG
             estimate = 5000;
         }
 
-        // Adjust for resize
+        // Adjust for resize - smaller dimensions = smaller file
         if (settings.resize && (settings.width || settings.height)) {
-            estimate *= 0.7;
+            estimate *= 0.6; // Significant reduction when resizing
         }
 
-        return estimate;
+        return Math.round(estimate);
     }
 }

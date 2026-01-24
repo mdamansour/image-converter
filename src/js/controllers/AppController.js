@@ -340,11 +340,15 @@ export class AppController {
                     settings.format === 'same' ? item.file.type : settings.format
                 );
 
+                // Calculate actual converted file size
+                const actualSize = FileService.getDataURLSize(convertedData);
+
                 results.push({ data: convertedData, filename });
 
                 appState.updateFile(item.id, { 
                     status: FILE_STATUS.DONE, 
-                    progress: 100 
+                    progress: 100,
+                    actualSize: actualSize
                 });
                 processedCount++;
 

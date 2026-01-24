@@ -136,6 +136,20 @@ export class FileService {
     }
 
     /**
+     * Get actual file size from data URL
+     */
+    static getDataURLSize(dataUrl) {
+        // Remove data URL prefix to get base64 data
+        const base64 = dataUrl.split(',')[1];
+        if (!base64) return 0;
+        
+        // Calculate size: base64 is ~4/3 of original binary size
+        // Account for padding characters
+        const padding = (base64.match(/=/g) || []).length;
+        return Math.round((base64.length * 3) / 4 - padding);
+    }
+
+    /**
      * Get sanitized filename without extension
      */
     static getFilenameWithoutExtension(filename) {
