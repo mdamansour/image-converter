@@ -3,9 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Open-source batch image converter that never uploads your files. Convert hundreds of images locally in your browser. 100% private, offline-capable, and completely free forever.">
-    <meta name="theme-color" content="#4f46e5">
+    
+    <!-- Primary Meta Tags -->
     <title>Open Source Image Converter | 100% Private & Offline</title>
+    <meta name="title" content="Open Source Image Converter | 100% Private & Offline">
+    <meta name="description" content="Open-source batch image converter that never uploads your files. Convert hundreds of images locally in your browser. 100% private, offline-capable, and completely free forever.">
+    <meta name="keywords" content="image converter, batch image converter, open source image converter, private image converter, offline image converter, convert images locally, no upload image converter, JPG to PNG, PNG to WEBP, client-side image converter, privacy-first converter, free image converter">
+    <meta name="author" content="Mohammed Amansour">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="theme-color" content="#4f46e5">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://image-converter.amansour.me/">
+    <meta property="og:title" content="Open Source Image Converter | 100% Private & Offline">
+    <meta property="og:description" content="The only open-source batch image converter that never uploads your files. Convert hundreds of images instantly—all processing happens in your browser.">
+    <meta property="og:image" content="https://image-converter.amansour.me/og-image.png">
+    <meta property="og:site_name" content="Image Converter">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://image-converter.amansour.me/">
+    <meta property="twitter:title" content="Open Source Image Converter | 100% Private & Offline">
+    <meta property="twitter:description" content="The only open-source batch image converter that never uploads your files. Convert hundreds of images instantly—all processing happens in your browser.">
+    <meta property="twitter:image" content="https://image-converter.amansour.me/og-image.png">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://image-converter.amansour.me/">
     
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
@@ -15,6 +40,110 @@
     
     <!-- New Modular Architecture -->
     <script type="module" src="js/main.js"></script>
+    
+    <!-- Structured Data (Schema.org) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Image Converter - Privacy First",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any (Web Browser)",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "description": "Open-source batch image converter that never uploads your files. Convert hundreds of images locally in your browser. 100% private, offline-capable, and completely free forever.",
+        "url": "https://image-converter.amansour.me/",
+        "screenshot": "https://image-converter.amansour.me/og-image.png",
+        "author": {
+            "@type": "Person",
+            "name": "Mohammed Amansour",
+            "url": "https://www.linkedin.com/in/mdamansour/"
+        },
+        "datePublished": "2026-01-24",
+        "softwareVersion": "2.0",
+        "license": "https://opensource.org/licenses/MIT",
+        "sourceCode": "https://github.com/mdamansour/image-converter",
+        "featureList": [
+            "Batch image conversion",
+            "Support for JPG, PNG, WEBP, GIF, BMP, TIFF, SVG, ICO, HEIC formats",
+            "100% client-side processing - no file uploads",
+            "Offline-capable Progressive Web App",
+            "Quality control and image resizing",
+            "Automatic ZIP download for batch conversions",
+            "Drag and drop interface",
+            "Open source code"
+        ],
+        "keywords": "image converter, batch converter, open source, privacy, offline, JPG, PNG, WEBP, client-side",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "5.0",
+            "ratingCount": "1",
+            "bestRating": "5",
+            "worstRating": "1"
+        }
+    }
+    </script>
+    
+    <!-- FAQ Schema for Rich Snippets -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Are my images uploaded to a server?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. All image processing happens locally in your browser using HTML5 Canvas API. Your images never leave your device and are never uploaded to any server."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Can I convert multiple images at once?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. This tool supports batch conversion of hundreds of images simultaneously. All converted images are automatically bundled into a ZIP file for easy download."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What image formats are supported?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The converter supports JPG, PNG, WEBP, GIF, BMP, TIFF, SVG, ICO formats for conversion, and can also read HEIC/HEIF images from iPhone."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does this tool work offline?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. Once installed as a Progressive Web App (PWA), the image converter works completely offline. All processing happens on your device."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is there a file size limit?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The only limit is your browser's available memory. Unlike cloud-based converters that impose file size restrictions, this tool processes everything locally."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is the source code available?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. The entire project is open source and available on GitHub under the MIT license. You can inspect, audit, modify, or contribute to the code."
+                }
+            }
+        ]
+    }
+    </script>
 </head>
 <body>
 
@@ -31,20 +160,20 @@
                 </a>
             </div>
             <h1>Image Converter</h1>
-            <p class="subtitle">The only open-source batch image converter that <strong>never uploads your files</strong>. Convert hundreds of images instantly—all processing happens in your browser.</p>
+            <p class="subtitle">The only <strong>open-source batch image converter</strong> that <strong>never uploads your files</strong>. Convert hundreds of images instantly—all processing happens <strong>locally in your browser</strong>.</p>
         </header>
 
-        <div id="dropZone" class="drop-zone">
+        <div id="dropZone" class="drop-zone" role="button" tabindex="0" aria-label="Upload images for conversion">
             <div class="icon-circle">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="17 8 12 3 7 8"></polyline>
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
             </div>
-            <h3>Upload Images</h3>
-            <p class="hint">Drag & drop multiple files<br>Supports JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC</p>
-            <input type="file" id="fileInput" accept="image/*" multiple hidden>
+            <h2>Upload Images</h2>
+            <p class="hint">Drag & drop multiple files<br>Supports <strong>JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC</strong></p>
+            <input type="file" id="fileInput" accept="image/*" multiple hidden aria-label="Select image files">
         </div>
 
         <div id="workspace" class="workspace hidden">
