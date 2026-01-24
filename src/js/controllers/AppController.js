@@ -196,6 +196,11 @@ export class AppController {
             this.ui.toast.show('⚠️ No valid images found');
             return;
         }
+        
+        // Warn for large batches
+        if (validFiles.length > 100) {
+            this.ui.toast.show('⚠️ Processing 100+ files may take time. Please wait...', 5000);
+        }
 
         const fileItems = validFiles.map(f => FileService.createFileItem(f));
         

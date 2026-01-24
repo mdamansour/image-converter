@@ -10,6 +10,10 @@ export class FileService {
      * Validate if file is a supported image
      */
     static isValidImage(file) {
+        // Warn for very large files (may cause performance issues)
+        if (file.size > 50 * 1024 * 1024) { // 50MB
+            console.warn(`File ${file.name} exceeds 50MB (${(file.size / 1024 / 1024).toFixed(1)}MB), may cause performance issues`);
+        }
         return file.type.startsWith('image/') || 
                file.name.toLowerCase().match(/\.(heic|heif)$/);
     }
